@@ -4,7 +4,7 @@ import QtGraphicalEffects 1.12
 Item {
     id: topBar
     width: parent.width
-    height: root.height * 0.07
+    height: root.height * 0.08
     z: 1000
 
     property int currentSection: 1

@@ -329,7 +329,7 @@ FocusScope {
             top: parent.top
             left: parent.left
             right: parent.right
-            topMargin: root.height * 0.02
+            topMargin: root.height * 0.03
         }
         currentSection: 1
         isFocused: false
@@ -419,7 +419,7 @@ FocusScope {
                         return collection ? collection.name : "";
                     }
                     font.family: global.fonts.sans
-                    font.pixelSize: root.height * 0.03
+                    font.pixelSize: root.height * 0.04
                     font.bold: true
                     color: "white"
                 }

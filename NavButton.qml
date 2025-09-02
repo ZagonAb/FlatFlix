@@ -9,10 +9,10 @@ Item {
         } else if (text !== "") {
             return textItem.contentWidth + (root ? root.width * 0.04 : 30);
         } else {
-            return (root ? root.height * 0.04 : 40);
+            return (root ? root.height * 0.05 : 50);
         }
     }
-    height: root ? root.height * 0.07 : 40
+    height: root ? root.height * 0.07 : 60
 
     property string text: ""
     property bool isIcon: false
