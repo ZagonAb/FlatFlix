@@ -851,6 +851,8 @@ FocusScope {
         isFavorite: gameData ? gameData.favorite : false
         opacity: gameInfoVisible ? 1.0 : 0.0
 
+        property var parentRoot: root.parent
+
         getFirstGenreFunction: function(gameData) {
 
             if (!gameData || !gameData.genre) return "Unknown";
@@ -861,6 +863,16 @@ FocusScope {
                 firstPart = firstPart.split(separators[i])[0];
             }
             return firstPart.trim() || "Unknown";
+        }
+
+        onShowingChanged: {
+            if (parentRoot && typeof parentRoot.setTopBarVisible === "function") {
+                parentRoot.setTopBarVisible(!showing);
+            }
+
+            if (parentRoot && parentRoot.hasOwnProperty("themeOpacity")) {
+                parentRoot.themeOpacity = showing ? 0.3 : 1.0;
+            }
         }
 
         onLaunchGame: {

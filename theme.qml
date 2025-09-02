@@ -92,6 +92,10 @@ FocusScope {
         forceActiveFocus();
     }
 
+    function setTopBarVisible(visible) {
+        topBarVisible = visible;
+    }
+
     function restoreTopBarFocus() {
         topBar.isFocused = true;
         if (selectedGame && typeof selectedGame.pauseVideo === "function") {
