@@ -33,6 +33,21 @@ FocusScope {
         "5", "6", "7", "8", "9", "0"
     ]
 
+    function restoreFocus() {
+        if (root.parent && root.parent.searchFocusState) {
+            var state = root.parent.searchFocusState;
+            keyboardFocused = state.keyboardFocused;
+            genreListFocused = state.genreListFocused;
+            resultsGridFocused = state.resultsGridFocused;
+            selectedKeyRow = state.selectedKeyRow;
+            selectedKeyCol = state.selectedKeyCol;
+            selectedGenreIndex = state.selectedGenreIndex;
+            selectedResultIndex = state.selectedResultIndex;
+            searchText = state.searchText;
+        }
+        forceActiveFocus();
+    }
+
     Behavior on themeOpacity {
         NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
     }
@@ -623,6 +638,15 @@ FocusScope {
         if (!keyboardFocused && !genreListFocused && !resultsGridFocused) {
             return;
         }
+
+        if (api.keys.isFilters(event)) {
+            if (root.parent && typeof root.parent.showStatsScreen === "function") {
+                root.parent.showStatsScreen();
+            }
+            event.accepted = true;
+            return;
+        }
+
 
         if (api.keys.isCancel(event)) {
             event.accepted = true

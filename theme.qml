@@ -25,6 +25,13 @@ FocusScope {
     property var currentLevel: ({})
     property real levelProgress: 0
 
+
+    property var currentScreen: "main"
+    property var previousScreen: "main"
+    property var previousFocusState: null
+
+    property bool statsScreenActive: false
+
     Behavior on themeOpacity {
         NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
     }
@@ -592,7 +599,70 @@ FocusScope {
     }
 
     function showStatsScreen() {
-        statsScreenLoader.active = true;
+        previousScreen = currentScreen
+        currentScreen = "stats"
+        statsScreenActive = true
+
+        previousFocusState = {
+            collectionIndex: currentCollectionIndex,
+            gameIndex: currentGameIndex,
+            topBarFocused: topBar.isFocused,
+            topBarVisible: topBarVisible,
+            searchState: searchComponent ? {
+                keyboardFocused: searchComponent.keyboardFocused,
+                genreListFocused: searchComponent.genreListFocused,
+                resultsGridFocused: searchComponent.resultsGridFocused,
+                selectedKeyRow: searchComponent.selectedKeyRow,
+                selectedKeyCol: searchComponent.selectedKeyCol,
+                selectedGenreIndex: searchComponent.selectedGenreIndex,
+                selectedResultIndex: searchComponent.selectedResultIndex,
+                searchText: searchComponent.searchText
+            } : null,
+            gameInfoState: gameInfoVisible ? {
+                currentButtonIndex: gameInfoComponent.currentButtonIndex
+            } : null
+        }
+
+        statsScreenLoader.active = true
+        themeOpacity = 0.3
+        topBarVisible = false
+    }
+
+
+    function returnFromStatsScreen() {
+        currentScreen = previousScreen
+        statsScreenActive = false
+        themeOpacity = 1.0
+        topBarVisible = true
+
+        if (previousFocusState) {
+            currentCollectionIndex = previousFocusState.collectionIndex
+            currentGameIndex = previousFocusState.gameIndex
+            topBar.isFocused = previousFocusState.topBarFocused
+            topBarVisible = previousFocusState.topBarVisible
+
+            if (previousFocusState.searchState && searchComponent) {
+                searchComponent.keyboardFocused = previousFocusState.searchState.keyboardFocused
+                searchComponent.genreListFocused = previousFocusState.searchState.genreListFocused
+                searchComponent.resultsGridFocused = previousFocusState.searchState.resultsGridFocused
+                searchComponent.selectedKeyRow = previousFocusState.searchState.selectedKeyRow
+                searchComponent.selectedKeyCol = previousFocusState.searchState.selectedKeyCol
+                searchComponent.selectedGenreIndex = previousFocusState.searchState.selectedGenreIndex
+                searchComponent.selectedResultIndex = previousFocusState.searchState.selectedResultIndex
+                searchComponent.searchText = previousFocusState.searchState.searchText
+
+                searchComponent.forceActiveFocus();
+            }
+
+            if (previousFocusState.gameInfoState && gameInfoComponent.visible) {
+                gameInfoComponent.currentButtonIndex = previousFocusState.gameInfoState.currentButtonIndex
+                gameInfoComponent.forceActiveFocus();
+            }
+        }
+
+        if (!previousFocusState || (!previousFocusState.searchState && !previousFocusState.gameInfoState)) {
+            forceActiveFocus();
+        }
     }
 
     Timer {
@@ -1013,9 +1083,20 @@ FocusScope {
 
     Keys.onPressed: {
 
+        if (statsScreenActive) {
+            return;
+        }
+
         if (gameInfoVisible || searchVisible) {
             return;
         }
+
+        if (api.keys.isFilters(event)) {
+            showStatsScreen();
+            event.accepted = true;
+            return;
+        }
+
         if (gameInfoVisible) {
             return;
         }
@@ -1049,6 +1130,10 @@ FocusScope {
     }
 
     Keys.onUpPressed: {
+        if (statsScreenActive) {
+            return;
+        }
+
         if (gameInfoVisible) {
             event.accepted = true;
             return;
@@ -1065,6 +1150,10 @@ FocusScope {
     }
 
     Keys.onDownPressed: {
+        if (statsScreenActive) {
+            return;
+        }
+
         if (gameInfoVisible) {
             event.accepted = true;
             return;
@@ -1095,6 +1184,10 @@ FocusScope {
     }
 
     Keys.onLeftPressed: {
+        if (statsScreenActive) {
+            return;
+        }
+
         if (gameInfoVisible) {
             event.accepted = true;
             return;
@@ -1111,6 +1204,10 @@ FocusScope {
     }
 
     Keys.onRightPressed: {
+        if (statsScreenActive) {
+            return;
+        }
+
         if (gameInfoVisible) {
             event.accepted = true;
             return;
@@ -1269,10 +1366,17 @@ FocusScope {
         id: statsScreenComponent
         StatsScreen {
             id: statsScreenInstance
+            focus: true
+
             onClosed: {
                 showing = false;
-                themeOpacity = 1.0;
-                topBarVisible = true;
+                statsScreenLoader.active = false;
+                if (returnFocusFunction && typeof returnFocusFunction === "function") {
+                    returnFocusFunction();
+                }
+            }
+
+            Component.onCompleted: {
                 forceActiveFocus();
             }
         }
@@ -1283,13 +1387,19 @@ FocusScope {
         anchors.fill: parent
         sourceComponent: statsScreenComponent
         active: false
+        focus: true
 
         onLoaded: {
             if (item) {
                 item.showing = true;
-                themeOpacity = 0.3;
-                topBarVisible = false;
+                item.returnFocusFunction = returnFromStatsScreen;
+                item.forceActiveFocus();
             }
+        }
+
+        onActiveChanged: {
+            if (active) {
+                forceActiveFocus();
         }
     }
 }

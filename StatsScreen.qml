@@ -7,6 +7,7 @@ import "utils.js" as Utils
 FocusScope {
     id: statsScreen
     anchors.fill: parent
+    focus: true
 
     property bool showing: false
     opacity: showing ? 1.0 : 0.0
@@ -30,6 +31,7 @@ FocusScope {
     property real dividerHeight: 1
 
     signal closed()
+    property var returnFocusFunction: null
 
     Behavior on opacity {
         NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
@@ -39,7 +41,18 @@ FocusScope {
         if (visible) {
             calculateStats();
             loadAchievementData();
+            forceActiveFocus();
         }
+    }
+
+    function closeScreen() {
+        showing = false;
+
+        if (returnFocusFunction && typeof returnFocusFunction === "function") {
+            returnFocusFunction();
+        }
+
+        closed();
     }
 
     function calculateStats() {
@@ -128,6 +141,7 @@ FocusScope {
     }
 
     Flickable {
+        id: flickableContent
         anchors {
             top: header.bottom
             left: parent.left
@@ -138,6 +152,15 @@ FocusScope {
         contentHeight: contentLayout.height + sectionSpacing * 2
         clip: true
         boundsBehavior: Flickable.StopAtBounds
+        interactive: true
+        flickableDirection: Flickable.VerticalFlick
+
+        Behavior on contentY {
+            NumberAnimation {
+                duration: 200
+                easing.type: Easing.OutCubic
+            }
+        }
 
         ColumnLayout {
             id: contentLayout
@@ -202,7 +225,8 @@ FocusScope {
                 Item {
                     width: parent.width
                     height: boxHeight * 0.8
-                    visible: currentLevel && currentLevel.level
+                    visible: currentLevel && typeof currentLevel.level !== 'undefined' && currentLevel.level > 0
+
 
                     Text {
                         anchors {
@@ -654,9 +678,59 @@ FocusScope {
     }
 
     Keys.onPressed: {
-        if (api.keys.isCancel(event)) {
-            statsScreen.closed()
+        if (api.keys.isFilters(event) || api.keys.isCancel(event)) {
+            closeScreen();
             event.accepted = true;
+        }
+        else if (event.key === Qt.Key_Up) {
+            var newY = Math.max(0, flickableContent.contentY - flickableContent.height * 0.2);
+            flickableContent.contentY = newY;
+            event.accepted = true;
+        }
+        else if (event.key === Qt.Key_Down) {
+            var maxY = Math.max(0, flickableContent.contentHeight - flickableContent.height);
+            var newY = Math.min(maxY, flickableContent.contentY + flickableContent.height * 0.2);
+            flickableContent.contentY = newY;
+            event.accepted = true;
+        }
+        else if (event.key === Qt.Key_Home) {
+            flickableContent.contentY = 0;
+            event.accepted = true;
+        }
+        else if (event.key === Qt.Key_End) {
+            var maxY = Math.max(0, flickableContent.contentHeight - flickableContent.height);
+            flickableContent.contentY = maxY;
+            event.accepted = true;
+        }
+    }
+
+    Rectangle {
+        id: scrollIndicator
+        anchors {
+            right: parent.right
+            top: flickableContent.top
+            bottom: flickableContent.bottom
+            rightMargin: 5
+        }
+        width: 4
+        color: "#333333"
+        radius: 2
+        visible: flickableContent.contentHeight > flickableContent.height
+
+        Rectangle {
+            id: scrollThumb
+            width: parent.width
+            height: Math.max(20, (flickableContent.height / flickableContent.contentHeight) * parent.height)
+            y: (flickableContent.contentY / flickableContent.contentHeight) * parent.height
+            color: "#666666"
+            radius: parent.radius
+
+            Behavior on y {
+                NumberAnimation {
+                    duration: 200
+                    easing.type: Easing.OutCubic
+                }
+            }
         }
     }
 }

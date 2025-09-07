@@ -725,11 +725,11 @@ Item {
                     mipmap: true
                 }
 
-                CustomToolTip {
+                /*CustomToolTip {
                     id: badgeTooltip
                     text: modelData.name
                     visible: mouseArea.containsMouse && !compactMode
-                }
+                }*/
             }
         }
     }
@@ -766,7 +766,7 @@ Item {
             }
         }
 
-        CustomToolTip {
+        /*CustomToolTip {
             id: timeTooltip
             text: {
                 if (!gameData) return "";
@@ -775,7 +775,7 @@ Item {
                 return `Jugado: ${hours}h ${minutes}m • ${gameData.playCount} veces`;
             }
             visible: timeMouseArea.containsMouse && !compactMode
-        }
+        }*/
     }
 
 }

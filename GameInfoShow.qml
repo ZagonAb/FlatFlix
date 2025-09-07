@@ -30,6 +30,14 @@ FocusScope {
         NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
     }
 
+    function restoreFocus() {
+        if (gameInfoShow.parent && gameInfoShow.parent.gameInfoFocusState) {
+            currentButtonIndex = gameInfoShow.parent.gameInfoFocusState.currentButtonIndex;
+            navigateButtons(currentButtonIndex === 0 ? "stay" : (currentButtonIndex === 1 ? "down" : "down"));
+        }
+        forceActiveFocus();
+    }
+
     onVisibleChanged: {
         if (visible) {
             showing = true;
@@ -742,6 +750,11 @@ FocusScope {
     Keys.onPressed: {
         if (api.keys.isCancel(event)) {
             gameInfoShow.close();
+            event.accepted = true;
+        } else if (api.keys.isFilters(event)) {
+            if (gameInfoShow.parent && typeof gameInfoShow.parent.showStatsScreen === "function") {
+                gameInfoShow.parent.showStatsScreen();
+            }
             event.accepted = true;
         } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
             if (launchButton.activeFocus) {
