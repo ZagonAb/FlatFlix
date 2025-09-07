@@ -1,3 +1,8 @@
+// Copyright (C) [2025] [Gonzalo Abbate]
+// This file is part of the [FlatFlix] theme for Pegasus Frontend.
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See the LICENSE file for more information.
+
 import QtQuick 2.15
 import QtGraphicalEffects 1.12
 import QtMultimedia 5.12
