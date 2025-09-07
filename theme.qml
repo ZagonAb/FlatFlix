@@ -1400,6 +1400,7 @@ FocusScope {
         onActiveChanged: {
             if (active) {
                 forceActiveFocus();
+            }
         }
     }
 }
