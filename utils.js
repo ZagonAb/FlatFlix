@@ -284,7 +284,6 @@ function checkBadges(state, totals, todaySessionHours, streakDays) {
 }
 
 function updateProgress(state, allGames) {
-    // Inicializar estado
     state = state || {};
     state.xp = state.xp || 0;
     state.level = state.level || 1;
@@ -296,65 +295,52 @@ function updateProgress(state, allGames) {
 
     var totals = computeTotals(allGames);
 
-    // Deltas acumulados desde último snapshot
     var deltaSeconds = Math.max(0, (totals.seconds || 0) - (state.lastSnapshot.seconds || 0));
     var deltaLaunches = Math.max(0, (totals.launches || 0) - (state.lastSnapshot.launches || 0));
 
-    // Asignar el delta de tiempo al día del último lastPlayed (aprox.)
     var day = totals.lastPlayedMax ? isoDay(totals.lastPlayedMax) : todayISO();
 
-    // Actualizar streak
     var lastDay = state.streak.lastDay;
     if (!lastDay) {
         state.streak.current = 1;
     } else {
         var gap = daysBetweenISO(lastDay, day);
         if (gap === 0) {
-            // mismo día: no cambia current
         } else if (gap === 1) {
             state.streak.current += 1;
         } else if (gap > 1) {
-            state.streak.current = 1; // resetea
+            state.streak.current = 1;
         }
     }
     state.streak.best = Math.max(state.streak.best || 0, state.streak.current || 0);
     state.streak.lastDay = day;
 
-    // Horas "ya jugadas" hoy (antes de aplicar delta)
     var secondsTodayBefore = state.daily[day] || 0;
     var hoursBefore = secondsTodayBefore / 3600.0;
 
     var deltaHours = deltaSeconds / 3600.0;
     var baseXPFromTime = xpFromHoursWithDailyCurve(hoursBefore, deltaHours, CFG.XP_PER_HOUR);
-
-    // Aproximación de horas de sesión (lo nuevo del día)
     var approxSessionHours = deltaHours;
-
-    // Multiplicadores
     var multSession = sessionBonusMultiplier(approxSessionHours);
     var multStreak = streakBonusMultiplier(state.streak.current || 0);
 
     var xpTime = Math.floor(baseXPFromTime * multSession * multStreak);
     var xpLaunch = deltaLaunches * CFG.XP_PER_LAUNCH;
 
-    // Variedad (hitos - XP directo opcional)
     var varietyXP = 0;
     var prevDistinct = state.totals.distinctGames30m || 0;
     var newDistinct = totals.distinctGames30m || 0;
     if (newDistinct > prevDistinct) {
-        // Por cada nuevo juego que cruza 30min, bonificar levemente
-        varietyXP = (newDistinct - prevDistinct) * 20; // 20 XP c/u
+        varietyXP = (newDistinct - prevDistinct) * 20;
     }
 
     var gainedXP = xpTime + xpLaunch + varietyXP;
 
-    // Actualizar acumulados diarios y snapshot
     state.daily[day] = secondsTodayBefore + deltaSeconds;
     state.lastSnapshot.seconds = totals.seconds || 0;
     state.lastSnapshot.launches = totals.launches || 0;
     state.totals = totals;
 
-    // Housekeeping del mapa daily (recortar histórico)
     var keep = {};
     var today = todayISO();
     for (var key in state.daily) {
@@ -365,14 +351,10 @@ function updateProgress(state, allGames) {
     }
     state.daily = keep;
 
-    // Aplicar XP y recalcular nivel
     state.xp += gainedXP;
     state.level = levelFromXP(state.xp);
 
-    // Chequear badges
     var newly = checkBadges(state, totals, approxSessionHours, state.streak.current || 0);
-
-    // Progreso dentro del nivel
     var prog = progressWithinLevel(state.xp);
 
     return {
