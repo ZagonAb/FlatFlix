@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtGraphicalEffects 1.12
 import QtMultimedia 5.12
+import "utils.js" as Utils
 
 Item {
     id: gameCard
@@ -41,7 +42,12 @@ Item {
             Image {
                 id: screenshot
                 anchors.fill: parent
-                source: gameData && gameData.assets.screenshot ? gameData.assets.screenshot : ""
+                source: {
+                    if (gameData && gameData.assets) {
+                        return gameData.assets.background || gameData.assets.screenshot || "";
+                    }
+                    return "";
+                }
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 visible: false
@@ -624,12 +630,7 @@ Item {
         }
     }
 
-    function getStoredVolume() {
-        if (typeof api !== 'undefined' && api.memory && api.memory.has("videoVolume")) {
-            return api.memory.get("videoVolume");
-        }
-        return 0.25;
-    }
+
 
     function saveVolume(volume) {
         if (typeof api !== 'undefined' && api.memory) {
@@ -637,7 +638,16 @@ Item {
         }
     }
 
+    function getStoredVolume() {
+        if (typeof api !== 'undefined' && api.memory && api.memory.has("videoVolume")) {
+            return api.memory.get("videoVolume");
+        }
+        return 0.25;
+    }
+
     function updateVolumeFromBarClick(mouseY) {
+        if (!gameData) return; // ← AÑADIR ESTA VERIFICACIÓN
+
         var relativeY = mouseY;
         var normalizedPosition = relativeY / volumeBarBackground.height;
         var newVolume = Math.max(0, Math.min(1, 1 - normalizedPosition));
@@ -647,7 +657,7 @@ Item {
     }
 
     function playVideo() {
-        if (gameData && gameData.assets.video && isCurrentItem && !compactMode && !topBarFocused) {
+        if (gameData && gameData.assets && gameData.assets.video && isCurrentItem && !compactMode && !topBarFocused) {
             videoPlayer.play();
             isPlaying = true;
         }
@@ -678,4 +688,94 @@ Item {
         videoStartTimer.stop();
         videoPlayer.stop();
     }
+
+    Row {
+        id: progressBadges
+        anchors {
+            top: parent.top
+            right: parent.right
+            topMargin: gameCard.width * 0.01
+            rightMargin: gameCard.width * 0.03
+        }
+        spacing: gameCard.width * 0.025
+
+        visible: !showEmptyCard && gameData && !compactMode && gameData && gameData.playTime !== undefined
+
+        Repeater {
+            model: {
+                if (gameData) {
+                    try {
+                        return Utils.getGameBadges(gameData).slice(0, 3);
+                    } catch (e) {
+                        return [];
+                    }
+                }
+                return [];
+            }
+
+            delegate: Item {
+                width: 20
+                height: 20
+
+                Image {
+                    width: gameCard.width * 0.04
+                    height: gameCard.width * 0.04
+                    source: modelData.icon
+                    fillMode: Image.PreserveAspectFit
+                    mipmap: true
+                }
+
+                CustomToolTip {
+                    id: badgeTooltip
+                    text: modelData.name
+                    visible: mouseArea.containsMouse && !compactMode
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        id: playTimeIndicator
+        anchors {
+            bottom: parent.bottom
+            left: parent.left
+            right: parent.right
+            margins: 5
+        }
+        height: gameCard.width * 0.01
+        radius: 1.5
+        visible: !showEmptyCard && gameData && !compactMode && gameData.playTime > 0
+        color: "#40000000"
+
+        Rectangle {
+            id: progressBar
+            property real hours: gameData ? gameData.playTime / 3600 : 0
+            property real k: 100
+            property real progress: hours > 0 ? Math.log(1 + hours) / Math.log(1 + hours + k) : 0
+
+            width: parent.width * progress
+            height: parent.height
+            radius: parent.radius
+
+            color: {
+                let t = Math.min(1, hours / 200);
+                let r = Math.floor(76 + t * (255 - 76));
+                let g = Math.floor(175 - t * 175);
+                let b = Math.floor(80 - t * 80);
+                return Qt.rgba(r/255, g/255, b/255, 1);
+            }
+        }
+
+        CustomToolTip {
+            id: timeTooltip
+            text: {
+                if (!gameData) return "";
+                const hours = Math.floor(gameData.playTime / 3600);
+                const minutes = Math.floor((gameData.playTime % 3600) / 60);
+                return `Jugado: ${hours}h ${minutes}m • ${gameData.playCount} veces`;
+            }
+            visible: timeMouseArea.containsMouse && !compactMode
+        }
+    }
+
 }

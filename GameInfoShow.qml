@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtGraphicalEffects 1.12
 import QtQuick.Layouts 1.12
+import "utils.js" as Utils
 import "qrc:/qmlutils" as PegasusUtils
 
 FocusScope {
@@ -94,7 +95,13 @@ FocusScope {
             Image {
                 id: screenshot
                 anchors.fill: parent
-                source: gameData && gameData.assets.screenshot ? gameData.assets.screenshot : ""
+                source: {
+                    if (gameData && gameData.assets) {
+
+                        return gameData.assets.background || gameData.assets.screenshot || "";
+                    }
+                    return "";
+                }
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 visible: false
@@ -116,7 +123,6 @@ FocusScope {
                 }
 
                 fragmentShader: "
-                #version 130
                 uniform sampler2D source;
                 uniform lowp float qt_Opacity;
                 uniform lowp float time;
@@ -125,26 +131,18 @@ FocusScope {
                 void main() {
                 vec2 uv = qt_TexCoord0;
 
-                // Curvatura CRT sutil
                 vec2 centered = uv - 0.5;
                 float dist = length(centered);
                 uv = centered * (1.0 + 0.08 * dist * dist) + 0.5;
 
-                // Color base
                 vec4 color = texture2D(source, uv);
 
-                // LÃ­neas de escaneo
                 float scanline = sin(uv.y * 600.0) * 0.04;
                 color.rgb -= scanline;
 
-                // ViÃ±eta
                 float vignette = 1.0 - 0.2 * dist;
                 color.rgb *= vignette;
-
-                // Brillo CRT
                 color.rgb *= 1.1;
-
-                // APLICAMOS SOLO LA OPACIDAD NORMAL
                 gl_FragColor = color * qt_Opacity;
             }"
             }
@@ -434,6 +432,66 @@ FocusScope {
                         color: "#666666"
                     }
                 }
+
+                Flow {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: childrenRect.height
+                    spacing: 10
+                    visible: gameData
+
+                    Repeater {
+                        model: {
+                            if (gameData) {
+                                try {
+                                    return Utils.getGameBadges(gameData);
+                                } catch (e) {
+                                    console.log("Error getting badges:", e);
+                                    return [];
+                                }
+                            }
+                            return [];
+                        }
+
+                        delegate: Rectangle {
+                            width: badgeRow.width + 30
+                            height: gameInfoShow.height * 0.05
+                            radius: 25
+                            color: {
+                                switch(modelData.level) {
+                                    case "platinum": return "#CCE5E4E2";
+                                    case "gold": return "#CCFFD700";
+                                    case "silver": return "#CCC0C0C0";
+                                    case "bronze": return "#CCCD7F32";
+                                    default: return "#CCFF0000";
+                                }
+                            }
+
+                            Row {
+                                id: badgeRow
+                                anchors.centerIn: parent
+                                spacing: 5
+
+                                Image {
+                                    source: modelData.icon
+                                    width: gameInfoShow.width * 0.015
+                                    height: gameInfoShow.width * 0.015
+                                    fillMode: Image.PreserveAspectFit
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    mipmap: true
+                                }
+
+                                Text {
+                                    text: modelData.name
+                                    font.family: global.fonts.sans
+                                    font.pixelSize: gameInfoShow.height * 0.022
+                                    font.bold: true
+                                    color: modelData.level === "platinum" ? "#000000" : ""
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             Item {
@@ -490,7 +548,7 @@ FocusScope {
                     }
 
                     Keys.onPressed: {
-                        if (api.keys.isAccept(event)) {
+                        if (!event.isAutoRepeat && api.keys.isAccept(event)) {
                             gameInfoShow.launchGame();
                             event.accepted = true;
                         }
@@ -626,6 +684,19 @@ FocusScope {
         var items = [];
 
         if (gameData) {
+
+            if (gameData.playTime > 0) {
+                try {
+                    var gameXP = Utils.calculateGameXP(gameData);
+                    items.push({
+                        text: Math.round(gameXP) + " XP",
+                               showSeparator: gameData.releaseYear > 0 || gameData.players > 1 || gameData.rating > 0
+                    });
+                } catch (e) {
+                    console.log("Error calculating XP:", e);
+                }
+            }
+
             if (gameData.releaseYear > 0) {
                 items.push({ text: gameData.releaseYear.toString() });
             }

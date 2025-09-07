@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtGraphicalEffects 1.12
 import QtQuick.Layouts 1.12
 import QtMultimedia 5.12
+import "utils.js" as Utils
 
 FocusScope {
     id: root
@@ -19,6 +20,10 @@ FocusScope {
     property bool showSearch: topBar.currentSection === 0
     property bool searchVisible: topBar.currentSection === 0
     property real themeOpacity: 1.0
+
+    property int totalXP: 0
+    property var currentLevel: ({})
+    property real levelProgress: 0
 
     Behavior on themeOpacity {
         NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
@@ -366,6 +371,259 @@ FocusScope {
                 if (selectedGame && typeof selectedGame.resumeVideo === "function") {
                     selectedGame.resumeVideo();
                 }
+            }
+        }
+    }
+
+    Item {
+        id: userProgress
+
+        anchors {
+            top: parent.top
+            right: parent.right
+            topMargin: root.height * 0.04  // 2% de la altura de root
+            rightMargin: root.width * 0.02 // 2% del ancho de root
+        }
+        width: progressRow.width + root.width * 0.03  // Padding adicional proporcional
+        height: root.height * 0.06  // 6% de la altura de root
+        z: 1001
+
+        // Background difuminado para todo el componente
+        Rectangle {
+            id: backgroundShadow
+            anchors.fill: parent
+            anchors.margins: -root.height * 0.015  // Margen negativo proporcional
+            color: "transparent"
+            radius: root.height * 0.025  // Radio proporcional
+
+            Rectangle {
+                id: shadowRect
+                anchors.fill: parent
+                color: "#80000000"
+                radius: parent.radius
+                visible: false
+            }
+
+            DropShadow {
+                anchors.fill: shadowRect
+                source: shadowRect
+                radius: root.height * 0.02  // Radio de sombra proporcional
+                samples: 41
+                color: "#CC000000"
+                spread: 0.2
+                transparentBorder: true
+            }
+        }
+
+        Row {
+            id: progressRow
+            spacing: root.width * 0.008  // Espaciado proporcional
+            z: 1
+            anchors.centerIn: parent
+
+            // Icono circular de nivel
+            Rectangle {
+                width: root.height * 0.06  // 6% de la altura de root
+                height: root.height * 0.06  // Mismo que el ancho para mantener círculo
+                radius: width / 2  // Siempre circular
+                color: "#80FF0000"
+
+                Image {
+                    id: levelIcon
+                    anchors.centerIn: parent
+                    width: parent.width * 0.6  // 60% del tamaño del círculo
+                    height: parent.width * 0.6  // Mantener relación cuadrada
+                    source: currentLevel.icon || "assets/levels/level-1.svg"
+                    fillMode: Image.PreserveAspectFit
+                    mipmap: true
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: showLevelDetails()
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                }
+            }
+
+            // Información de progreso
+            Column {
+                spacing: root.height * 0.005  // Espaciado pequeño proporcional
+                anchors.verticalCenter: parent.verticalCenter
+
+                Text {
+                    text: `Level ${currentLevel.level || 1} - ${currentLevel.name || "Rookie"}`
+                    font.family: global.fonts.sans
+                    font.pixelSize: root.height * 0.016  // Tamaño de fuente proporcional
+                    font.bold: true
+                    color: "white"
+                }
+
+                // Barra de progreso
+                Rectangle {
+                    width: root.width * 0.12  // 12% del ancho de root
+                    height: root.height * 0.006  // 0.6% de la altura de root
+                    radius: height / 2  // Semirredondo basado en altura
+                    color: "#CCFFFFFF"
+
+                    Rectangle {
+                        width: parent.width * levelProgress
+                        height: parent.height
+                        radius: parent.radius
+                        color: "#CCFF0000"
+                        Behavior on width {
+                            NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
+                        }
+                    }
+                }
+
+                Text {
+                    text: {
+                        if (currentLevel.level >= 10) {
+                            return `Maximum level reached!`;
+                        } else {
+                            var progressPercent = Math.round(levelProgress * 100);
+                            return `${progressPercent}% progress toward level ${currentLevel.level + 1}`;
+                        }
+                    }
+                    font.family: global.fonts.sans
+                    font.pixelSize: root.height * 0.012  // Fuente más pequeña
+                    color: "white"
+                    opacity: 0.8
+                }
+            }
+        }
+
+        Item {
+            id: tooltipContainer
+            visible: levelTooltip.visible
+            z: 1002
+
+            Rectangle {
+                id: tooltipShadowRect
+                width: levelTooltip.width
+                height: levelTooltip.height
+                color: "#CC000000"
+                radius: root.height * 0.01  // Radio proporcional
+                visible: false
+            }
+
+            DropShadow {
+                anchors.fill: tooltipShadowRect
+                source: tooltipShadowRect
+                radius: root.height * 0.015  // Radio de sombra proporcional
+                samples: 31
+                color: "#AA000000"
+                spread: 0.3
+                transparentBorder: true
+            }
+
+            Rectangle {
+                id: levelTooltip
+                width: levelTooltipContent.width + root.width * 0.02  // Padding proporcional
+                height: levelTooltipContent.height + root.height * 0.01  // Padding proporcional
+                color: "#CC000000"
+                radius: root.height * 0.01  // Radio proporcional
+                visible: false
+                border.color: "#33FFFFFF"
+                border.width: 1
+
+                Column {
+                    id: levelTooltipContent
+                    anchors.centerIn: parent
+                    spacing: root.height * 0.008  // Espaciado proporcional
+
+                    Row {
+                        spacing: root.width * 0.01  // Espaciado proporcional
+                        anchors.horizontalCenter: parent.horizontalCenter
+
+                        Image {
+                            id: tooltipLevelIcon
+                            width: root.height * 0.03  // Tamaño proporcional
+                            height: root.height * 0.03  // Tamaño proporcional
+                            source: currentLevel.icon || "assets/levels/level-1.svg"
+                            fillMode: Image.PreserveAspectFit
+                            mipmap: true
+                        }
+
+                        Text {
+                            text: `Level ${currentLevel.level || 1} - ${currentLevel.name || "Rookie"}`
+                            color: "white"
+                            font.family: global.fonts.sans
+                            font.pixelSize: root.height * 0.018  // Tamaño de fuente proporcional
+                            font.bold: true
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    Text {
+                        id: levelTooltipText
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: {
+                            if (currentLevel.level >= 10) {
+                                return `Total XP: ${totalXP}\nMaximum level reached! 🎉`;
+                            } else {
+                                var nextLevel = Utils.getLevelFromXP(currentLevel.xpRequired + 1);
+                                var xpNeeded = Math.max(0, nextLevel.xpRequired - totalXP);
+                                return `Total XP: ${totalXP}\n${xpNeeded} XP needed to reach level ${currentLevel.level + 1}`;
+                            }
+                        }
+                        color: "white"
+                        font.family: global.fonts.sans
+                        font.pixelSize: root.height * 0.015  // Tamaño de fuente proporcional
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                }
+            }
+        }
+    }
+
+    function showLevelDetails() {
+        if (typeof showStatsScreen === "function") {
+            showStatsScreen();
+        }
+        else if (levelTooltip.visible) {
+            levelTooltip.visible = false;
+        } else {
+            levelTooltip.x = userProgress.x + userProgress.width / 2 - levelTooltip.width / 2;
+            levelTooltip.y = userProgress.y + userProgress.height + 5;
+            levelTooltip.visible = true;
+
+            var nextLevel = Utils.getLevelFromXP(currentLevel.xpRequired + 1);
+            var xpNeeded = nextLevel.xpRequired - totalXP;
+            levelTooltipText.text = `Total XP: ${totalXP}\nNext level: ${xpNeeded} XP needed`;
+        }
+    }
+
+    function showStatsScreen() {
+        statsScreenLoader.active = true;
+    }
+
+    Timer {
+        id: progressUpdateTimer
+        interval: 30000 // Actualizar cada 30 segundos
+        running: true
+        repeat: true
+        onTriggered: {
+            try {
+                // Actualizar el progreso
+                var achievementState = api.memory.get("achievementState") || {};
+                var result = Utils.Achievements.updateProgress(achievementState, api.allGames);
+
+                // Guardar el estado actualizado
+                api.memory.set("achievementState", result.state);
+
+                // Actualizar UI
+                totalXP = result.state.xp;
+                currentLevel = Utils.getLevelFromXP(totalXP);
+                levelProgress = Utils.getProgressToNextLevel(totalXP, currentLevel);
+
+                // Mostrar notificaciones de nuevos logros si hay
+                if (result.newBadges && result.newBadges.length > 0) {
+                    showBadgeNotifications(result.newBadges);
+                }
+            } catch (e) {
+                console.log("Error updating achievement system:", e);
             }
         }
     }
@@ -889,6 +1147,125 @@ FocusScope {
         if (collection && currentGameIndex >= collection.games.count) {
             currentGameIndex = 0;
         }
+
+        // CALCULAR PROGRESO DEL USUARIO - Nuevo sistema
+        try {
+            // Inicializar o actualizar el estado de logros
+            var achievementState = api.memory.get("achievementState") || {};
+            var result = Utils.Achievements.updateProgress(achievementState, api.allGames);
+
+            // Guardar el estado actualizado
+            api.memory.set("achievementState", result.state);
+
+            // Actualizar UI
+            totalXP = result.state.xp;
+            currentLevel = Utils.getLevelFromXP(totalXP);
+            levelProgress = Utils.getProgressToNextLevel(totalXP, currentLevel);
+
+            console.log("Achievements System: Level", currentLevel.level, "XP:", totalXP,
+                        "Progress:", Math.round(levelProgress * 100) + "%");
+
+
+            // Mostrar notificaciones de nuevos logros si hay
+            if (result.newBadges && result.newBadges.length > 0) {
+                showBadgeNotifications(result.newBadges);
+            }
+        } catch (e) {
+            console.log("EError initializing achievement system:", e);
+            // Valores por defecto en caso de error
+            totalXP = 0;
+            currentLevel = { level: 1, name: "Rookie", icon: "🥚", xpRequired: 0 };
+            levelProgress = 0;
+        }
+
+        progressUpdateTimer.start();
+    }
+
+    function showBadgeNotifications(badges) {
+        if (!badges || badges.length === 0) return;
+
+        badgeNotificationComponent.createObject(root, { badges: badges });
+    }
+
+    Component {
+        id: badgeNotificationComponent
+
+        Item {
+            property var badges: []
+            property int currentIndex: 0
+
+            anchors.fill: parent
+            z: 10000
+
+            Rectangle {
+                id: notification
+                anchors {
+                    top: parent.top
+                    right: parent.right
+                    topMargin: 100
+                    rightMargin: 20
+                }
+                width: 300
+                height: 100
+                radius: 10
+                color: "#CC1a1a1a"
+                border.color: "#44ffffff"
+                border.width: 1
+                visible: currentIndex < badges.length
+
+                Row {
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    spacing: 10
+
+                    Image {
+                        id: badgeIcon
+                        width: 60
+                        height: 60
+                        source: badges[currentIndex] ? badges[currentIndex].icon : ""
+                        fillMode: Image.PreserveAspectFit
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Column {
+                        width: parent.width - badgeIcon.width - parent.spacing
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 5
+
+                        Text {
+                            text: "¡Achievement Unlocked!"
+                            font.family: global.fonts.sans
+                            font.pixelSize: 14
+                            font.bold: true
+                            color: "white"
+                        }
+
+                        Text {
+                            text: badges[currentIndex] ? badges[currentIndex].name : ""
+                            font.family: global.fonts.sans
+                            font.pixelSize: 16
+                            color: "#FFD700"
+                            width: parent.width
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
+            }
+
+            Timer {
+                id: notificationTimer
+                interval: 3000
+                running: true
+                onTriggered: {
+                    currentIndex++;
+                    if (currentIndex < badges.length) {
+                        restart();
+                    } else {
+                        parent.destroy();
+                    }
+                }
+            }
+        }
     }
 
     onCurrentCollectionIndexChanged: {
@@ -900,6 +1277,34 @@ FocusScope {
     onCurrentGameIndexChanged: {
         if (topBar.currentSection === 1) {
             api.memory.set("savedGameIndex", currentGameIndex);
+        }
+    }
+
+    Component {
+        id: statsScreenComponent
+        StatsScreen {
+            id: statsScreenInstance
+            onClosed: {
+                showing = false;
+                themeOpacity = 1.0;
+                topBarVisible = true;
+                forceActiveFocus();
+            }
+        }
+    }
+
+    Loader {
+        id: statsScreenLoader
+        anchors.fill: parent
+        sourceComponent: statsScreenComponent
+        active: false
+
+        onLoaded: {
+            if (item) {
+                item.showing = true;
+                themeOpacity = 0.3;
+                topBarVisible = false;
+            }
         }
     }
 }
