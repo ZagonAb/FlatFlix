@@ -699,7 +699,7 @@ Item {
         anchors {
             top: parent.top
             right: parent.right
-            topMargin: gameCard.width * 0.01
+            topMargin: gameCard.width * 0.02
             rightMargin: gameCard.width * 0.03
         }
         spacing: gameCard.width * 0.025
