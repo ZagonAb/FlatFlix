@@ -77,20 +77,16 @@ function getFirstGenre(gameData) {
     return cleanedGenres.length > 0 ? cleanedGenres[0] : "Unknown";
 }
 
-// === Configuración/calibración ===
 var CFG = {
     XP_PER_HOUR: 10,
     XP_PER_LAUNCH: 3,
 
-    // Curva de nivel: XP acumulado para llegar a L: BASE * (L-1)^ALPHA
     LEVEL_BASE: 100,
     LEVEL_ALPHA: 1.6,
 
-    // Bonus por sesión (aprox. por delta del día)
-    SESSION_RATE_PER_HOUR: 0.05, // +5% por hora > 1h
-    SESSION_BONUS_CAP: 0.50,     // +50% máx
+    SESSION_RATE_PER_HOUR: 0.05,
+    SESSION_BONUS_CAP: 0.50,
 
-    // Streaks (por mejor umbral alcanzado)
     STREAK_BONUS: [
         { days: 30, mult: 0.40 },
         { days: 14, mult: 0.20 },
@@ -98,7 +94,6 @@ var CFG = {
         { days: 3,  mult: 0.05 }
     ],
 
-    // Rendimientos decrecientes por día
     DAILY_SOFT_HOURS: 4,
     DAILY_MED_HOURS: 8,
     DAILY_HARD_HOURS: 12,
@@ -107,21 +102,17 @@ var CFG = {
     MULT_MED: 0.25,
     MULT_AFTER_HARD: 0.0,
 
-    // Variedad
-    DISTINCT_MIN_SECONDS: 30 * 60, // 30 min
+    DISTINCT_MIN_SECONDS: 30 * 60,
 
-    // Mantenimiento
-    DAILY_HISTORY_KEEP: 90 // días a conservar
+    DAILY_HISTORY_KEEP: 90
 };
 
-// === Curva de niveles ===
 function xpToReachLevel(L) {
     if (L <= 1) return 0;
     return Math.floor(CFG.LEVEL_BASE * Math.pow(L - 1, CFG.LEVEL_ALPHA));
 }
 
 function levelFromXP(xp) {
-    // Búsqueda lineal segura (niveles no muy altos)
     var L = 1;
     while (xp >= xpToReachLevel(L + 1)) L++;
     return L;
@@ -139,7 +130,6 @@ function progressWithinLevel(xp) {
     };
 }
 
-// === Agregados desde api ===
 function computeTotals(allGames) {
     var seconds = 0;
     var launches = 0;
@@ -155,9 +145,7 @@ function computeTotals(allGames) {
     return { seconds: seconds, launches: launches, distinctGames30m: distinct, lastPlayedMax: lastPlayedMax };
 }
 
-// === Utilidades de fecha ===
 function isoDay(ts) {
-    // ts en ms (epoch). Devuelve YYYY-MM-DD en local.
     var d = new Date(ts);
     var y = d.getFullYear();
     var m = ("0" + (d.getMonth() + 1)).slice(-2);
@@ -177,7 +165,6 @@ function daysBetweenISO(a, b) {
 
 function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
 
-// === Rendimientos decrecientes por día ===
 function xpFromHoursWithDailyCurve(hoursAlreadyToday, deltaHours, xpPerHour) {
     var xp = 0;
     var remaining = deltaHours;
@@ -203,13 +190,11 @@ function xpFromHoursWithDailyCurve(hoursAlreadyToday, deltaHours, xpPerHour) {
     var h3 = clamp(h3limitEnd - h3limitStart, 0, remaining);
     take(h3, CFG.MULT_MED);
 
-    // Lo que sobre después de 12h
     take(remaining, CFG.MULT_AFTER_HARD);
 
     return xp;
 }
 
-// === Bonus por sesión y streak ===
 function sessionBonusMultiplier(approxSessionHours) {
     if (approxSessionHours <= 1) return 1;
     var extra = (approxSessionHours - 1) * CFG.SESSION_RATE_PER_HOUR;
@@ -225,7 +210,6 @@ function streakBonusMultiplier(streakDays) {
     return 1;
 }
 
-// === Badges ===
 var BADGES = {
     time: [
         { id: "time_5h",    hours: 5,    level: "bronze",   name: "Beginner", icon: "assets/badges/time-bronze.svg" },
@@ -273,26 +257,22 @@ function checkBadges(state, totals, todaySessionHours, streakDays) {
 
     var newly = [];
 
-    // Tiempo total
     var hoursTotal = (totals.seconds || 0) / 3600.0;
     for (i = 0; i < BADGES.time.length; i++) {
         var b = BADGES.time[i];
         if (!earnedSet[b.id] && hoursTotal >= b.hours) { earned.push(b.id); newly.push(b); }
     }
 
-    // Playcount total
     for (i = 0; i < BADGES.playcount.length; i++) {
         b = BADGES.playcount[i];
         if (!earnedSet[b.id] && (totals.launches || 0) >= b.count) { earned.push(b.id); newly.push(b); }
     }
 
-    // Streaks
     for (i = 0; i < BADGES.streak.length; i++) {
         b = BADGES.streak[i];
         if (!earnedSet[b.id] && streakDays >= b.days) { earned.push(b.id); newly.push(b); }
     }
 
-    // Variedad
     for (i = 0; i < BADGES.variety.length; i++) {
         b = BADGES.variety[i];
         if (!earnedSet[b.id] && (totals.distinctGames30m || 0) >= b.distinct) { earned.push(b.id); newly.push(b); }
@@ -300,10 +280,9 @@ function checkBadges(state, totals, todaySessionHours, streakDays) {
 
     state.badges = state.badges || {};
     state.badges.earned = earned;
-    return newly; // para UI: notificaciones
+    return newly;
 }
 
-// === Motor de actualización principal ===
 function updateProgress(state, allGames) {
     // Inicializar estado
     state = state || {};
@@ -405,7 +384,6 @@ function updateProgress(state, allGames) {
     };
 }
 
-// === Exponer API del módulo ===
 var Achievements = {
     CFG: CFG,
     updateProgress: updateProgress,
@@ -414,7 +392,6 @@ var Achievements = {
     levelFromXP: levelFromXP,
     progressWithinLevel: progressWithinLevel,
     getBadgeIcon: function(badgeId) {
-        // Buscar en todas las categorías
         for (var category in BADGES) {
             for (var i = 0; i < BADGES[category].length; i++) {
                 if (BADGES[category][i].id === badgeId) {
@@ -436,7 +413,6 @@ var Achievements = {
     }
 };
 
-// === Funciones existentes (mantener compatibilidad) ===
 function calculateTotalXP() {
     var state = api.memory.get("achievementState") || {};
     return state.xp || 0;
@@ -445,7 +421,6 @@ function calculateTotalXP() {
 function getLevelFromXP(xp) {
     var level = levelFromXP(xp);
 
-    // Sistema de niveles con iconos reales
     var levelData = [
         { level: 1, name: "Rookie", icon: "assets/levels/level-1.svg", xpRequired: 0 },
         { level: 2, name: "Apprentice", icon: "assets/levels/level-2.svg", xpRequired: 100 },
@@ -459,15 +434,12 @@ function getLevelFromXP(xp) {
         { level: 10, name: "Omnipotent", icon: "assets/levels/level-10.svg", xpRequired: 4500 }
     ];
 
-    // Para niveles más altos, usar nombres genéricos e icono por defecto
     if (level <= 10) {
         return levelData[level - 1];
     } else {
-        // Para niveles superiores al 10, usar un sistema escalable
+
         var baseLevel = 10;
         var baseXP = levelData[9].xpRequired;
-
-        // Calcular el nombre del nivel basado en rangos
         var levelRange = "";
         if (level <= 20) levelRange = "I";
         else if (level <= 30) levelRange = "II";

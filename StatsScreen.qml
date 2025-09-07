@@ -22,8 +22,6 @@ FocusScope {
     property var currentLevel: ({})
     property real levelProgress: 0
     property var achievementState: ({})
-
-    // Tamaños proporcionales
     property real headerHeight: parent.height * 0.12
     property real sectionSpacing: parent.height * 0.03
     property real boxSpacing: parent.width * 0.02
@@ -79,7 +77,6 @@ FocusScope {
         opacity: 0.98
     }
 
-    // Header
     Rectangle {
         id: header
         anchors {
@@ -100,7 +97,6 @@ FocusScope {
             color: "white"
         }
 
-        // Back Button
         Rectangle {
             id: backButton
             anchors {
@@ -131,7 +127,6 @@ FocusScope {
         }
     }
 
-    // Content
     Flickable {
         anchors {
             top: header.bottom
@@ -151,7 +146,6 @@ FocusScope {
 
             spacing: sectionSpacing
 
-            // General Progress Section
             Column {
                 Layout.fillWidth: true
                 spacing: sectionSpacing * 0.5
@@ -205,7 +199,6 @@ FocusScope {
                     }
                 }
 
-                // Progress Bar
                 Item {
                     width: parent.width
                     height: boxHeight * 0.8
@@ -284,7 +277,6 @@ FocusScope {
                 }
             }
 
-            // Game Statistics Section
             Column {
                 Layout.fillWidth: true
                 spacing: sectionSpacing * 0.5
@@ -351,7 +343,6 @@ FocusScope {
                 }
             }
 
-            // Gaming Habits Section
             Column {
                 Layout.fillWidth: true
                 spacing: sectionSpacing * 0.5
@@ -418,7 +409,6 @@ FocusScope {
                 }
             }
 
-            // Achievements Section
             Column {
                 Layout.fillWidth: true
                 spacing: sectionSpacing * 0.5
@@ -515,7 +505,6 @@ FocusScope {
                 }
             }
 
-            // Upcoming Achievements Section
             Column {
                 Layout.fillWidth: true
                 spacing: sectionSpacing * 0.5

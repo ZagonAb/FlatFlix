@@ -25,7 +25,6 @@ Rectangle {
         }
         spacing: parent.height * 0.05
 
-        // Icon/Image
         Item {
             width: parent.width
             height: statBox.iconSize
@@ -37,7 +36,6 @@ Rectangle {
             }
         }
 
-        // Value
         Text {
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
@@ -51,7 +49,6 @@ Rectangle {
             fontSizeMode: Text.Fit
         }
 
-        // Title
         Text {
             width: parent.width
             horizontalAlignment: Text.AlignHCenter

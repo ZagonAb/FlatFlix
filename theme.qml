@@ -381,20 +381,19 @@ FocusScope {
         anchors {
             top: parent.top
             right: parent.right
-            topMargin: root.height * 0.04  // 2% de la altura de root
-            rightMargin: root.width * 0.02 // 2% del ancho de root
+            topMargin: root.height * 0.04
+            rightMargin: root.width * 0.02
         }
-        width: progressRow.width + root.width * 0.03  // Padding adicional proporcional
-        height: root.height * 0.06  // 6% de la altura de root
+        width: progressRow.width + root.width * 0.03
+        height: root.height * 0.06
         z: 1001
 
-        // Background difuminado para todo el componente
         Rectangle {
             id: backgroundShadow
             anchors.fill: parent
-            anchors.margins: -root.height * 0.015  // Margen negativo proporcional
+            anchors.margins: -root.height * 0.015
             color: "transparent"
-            radius: root.height * 0.025  // Radio proporcional
+            radius: root.height * 0.025
 
             Rectangle {
                 id: shadowRect
@@ -407,7 +406,7 @@ FocusScope {
             DropShadow {
                 anchors.fill: shadowRect
                 source: shadowRect
-                radius: root.height * 0.02  // Radio de sombra proporcional
+                radius: root.height * 0.02
                 samples: 41
                 color: "#CC000000"
                 spread: 0.2
@@ -417,22 +416,21 @@ FocusScope {
 
         Row {
             id: progressRow
-            spacing: root.width * 0.008  // Espaciado proporcional
+            spacing: root.width * 0.008
             z: 1
             anchors.centerIn: parent
 
-            // Icono circular de nivel
             Rectangle {
-                width: root.height * 0.06  // 6% de la altura de root
-                height: root.height * 0.06  // Mismo que el ancho para mantener círculo
-                radius: width / 2  // Siempre circular
+                width: root.height * 0.06
+                height: root.height * 0.06
+                radius: width / 2
                 color: "#80FF0000"
 
                 Image {
                     id: levelIcon
                     anchors.centerIn: parent
-                    width: parent.width * 0.6  // 60% del tamaño del círculo
-                    height: parent.width * 0.6  // Mantener relación cuadrada
+                    width: parent.width * 0.6
+                    height: parent.width * 0.6
                     source: currentLevel.icon || "assets/levels/level-1.svg"
                     fillMode: Image.PreserveAspectFit
                     mipmap: true
@@ -446,24 +444,22 @@ FocusScope {
                 }
             }
 
-            // Información de progreso
             Column {
-                spacing: root.height * 0.005  // Espaciado pequeño proporcional
+                spacing: root.height * 0.005
                 anchors.verticalCenter: parent.verticalCenter
 
                 Text {
                     text: `Level ${currentLevel.level || 1} - ${currentLevel.name || "Rookie"}`
                     font.family: global.fonts.sans
-                    font.pixelSize: root.height * 0.016  // Tamaño de fuente proporcional
+                    font.pixelSize: root.height * 0.016
                     font.bold: true
                     color: "white"
                 }
 
-                // Barra de progreso
                 Rectangle {
-                    width: root.width * 0.12  // 12% del ancho de root
-                    height: root.height * 0.006  // 0.6% de la altura de root
-                    radius: height / 2  // Semirredondo basado en altura
+                    width: root.width * 0.12
+                    height: root.height * 0.006
+                    radius: height / 2
                     color: "#CCFFFFFF"
 
                     Rectangle {
@@ -487,7 +483,7 @@ FocusScope {
                         }
                     }
                     font.family: global.fonts.sans
-                    font.pixelSize: root.height * 0.012  // Fuente más pequeña
+                    font.pixelSize: root.height * 0.012
                     color: "white"
                     opacity: 0.8
                 }
@@ -504,14 +500,14 @@ FocusScope {
                 width: levelTooltip.width
                 height: levelTooltip.height
                 color: "#CC000000"
-                radius: root.height * 0.01  // Radio proporcional
+                radius: root.height * 0.01
                 visible: false
             }
 
             DropShadow {
                 anchors.fill: tooltipShadowRect
                 source: tooltipShadowRect
-                radius: root.height * 0.015  // Radio de sombra proporcional
+                radius: root.height * 0.015
                 samples: 31
                 color: "#AA000000"
                 spread: 0.3
@@ -520,10 +516,10 @@ FocusScope {
 
             Rectangle {
                 id: levelTooltip
-                width: levelTooltipContent.width + root.width * 0.02  // Padding proporcional
-                height: levelTooltipContent.height + root.height * 0.01  // Padding proporcional
+                width: levelTooltipContent.width + root.width * 0.02
+                height: levelTooltipContent.height + root.height * 0.01
                 color: "#CC000000"
-                radius: root.height * 0.01  // Radio proporcional
+                radius: root.height * 0.01
                 visible: false
                 border.color: "#33FFFFFF"
                 border.width: 1
@@ -531,16 +527,16 @@ FocusScope {
                 Column {
                     id: levelTooltipContent
                     anchors.centerIn: parent
-                    spacing: root.height * 0.008  // Espaciado proporcional
+                    spacing: root.height * 0.008
 
                     Row {
-                        spacing: root.width * 0.01  // Espaciado proporcional
+                        spacing: root.width * 0.01
                         anchors.horizontalCenter: parent.horizontalCenter
 
                         Image {
                             id: tooltipLevelIcon
-                            width: root.height * 0.03  // Tamaño proporcional
-                            height: root.height * 0.03  // Tamaño proporcional
+                            width: root.height * 0.03
+                            height: root.height * 0.03
                             source: currentLevel.icon || "assets/levels/level-1.svg"
                             fillMode: Image.PreserveAspectFit
                             mipmap: true
@@ -550,7 +546,7 @@ FocusScope {
                             text: `Level ${currentLevel.level || 1} - ${currentLevel.name || "Rookie"}`
                             color: "white"
                             font.family: global.fonts.sans
-                            font.pixelSize: root.height * 0.018  // Tamaño de fuente proporcional
+                            font.pixelSize: root.height * 0.018
                             font.bold: true
                             anchors.verticalCenter: parent.verticalCenter
                         }
@@ -570,7 +566,7 @@ FocusScope {
                         }
                         color: "white"
                         font.family: global.fonts.sans
-                        font.pixelSize: root.height * 0.015  // Tamaño de fuente proporcional
+                        font.pixelSize: root.height * 0.015
                         horizontalAlignment: Text.AlignHCenter
                     }
                 }
@@ -601,24 +597,20 @@ FocusScope {
 
     Timer {
         id: progressUpdateTimer
-        interval: 30000 // Actualizar cada 30 segundos
+        interval: 30000
         running: true
         repeat: true
         onTriggered: {
             try {
-                // Actualizar el progreso
                 var achievementState = api.memory.get("achievementState") || {};
                 var result = Utils.Achievements.updateProgress(achievementState, api.allGames);
 
-                // Guardar el estado actualizado
                 api.memory.set("achievementState", result.state);
 
-                // Actualizar UI
                 totalXP = result.state.xp;
                 currentLevel = Utils.getLevelFromXP(totalXP);
                 levelProgress = Utils.getProgressToNextLevel(totalXP, currentLevel);
 
-                // Mostrar notificaciones de nuevos logros si hay
                 if (result.newBadges && result.newBadges.length > 0) {
                     showBadgeNotifications(result.newBadges);
                 }
@@ -1148,16 +1140,12 @@ FocusScope {
             currentGameIndex = 0;
         }
 
-        // CALCULAR PROGRESO DEL USUARIO - Nuevo sistema
         try {
-            // Inicializar o actualizar el estado de logros
             var achievementState = api.memory.get("achievementState") || {};
             var result = Utils.Achievements.updateProgress(achievementState, api.allGames);
 
-            // Guardar el estado actualizado
             api.memory.set("achievementState", result.state);
 
-            // Actualizar UI
             totalXP = result.state.xp;
             currentLevel = Utils.getLevelFromXP(totalXP);
             levelProgress = Utils.getProgressToNextLevel(totalXP, currentLevel);
@@ -1165,14 +1153,11 @@ FocusScope {
             console.log("Achievements System: Level", currentLevel.level, "XP:", totalXP,
                         "Progress:", Math.round(levelProgress * 100) + "%");
 
-
-            // Mostrar notificaciones de nuevos logros si hay
             if (result.newBadges && result.newBadges.length > 0) {
                 showBadgeNotifications(result.newBadges);
             }
         } catch (e) {
             console.log("EError initializing achievement system:", e);
-            // Valores por defecto en caso de error
             totalXP = 0;
             currentLevel = { level: 1, name: "Rookie", icon: "🥚", xpRequired: 0 };
             levelProgress = 0;

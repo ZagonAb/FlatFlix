@@ -646,7 +646,7 @@ Item {
     }
 
     function updateVolumeFromBarClick(mouseY) {
-        if (!gameData) return; // ← AÑADIR ESTA VERIFICACIÓN
+        if (!gameData) return;
 
         var relativeY = mouseY;
         var normalizedPosition = relativeY / volumeBarBackground.height;
