@@ -489,3 +489,127 @@ function getGameBadges(game) {
     return badges;
 }
 
+function getMostPlayedGames(limit = 5) {
+    var games = [];
+
+    for (var i = 0; i < api.allGames.count; i++) {
+        var game = api.allGames.get(i);
+        if (game && game.playTime > 0) {
+            games.push({
+                game: game,
+                playTime: game.playTime
+            });
+        }
+    }
+
+    games.sort(function(a, b) {
+        return b.playTime - a.playTime;
+    });
+
+    return games.slice(0, limit);
+}
+
+function getFavoriteGames(limit = 5) {
+    var games = [];
+
+    for (var i = 0; i < api.allGames.count; i++) {
+        var game = api.allGames.get(i);
+        if (game && game.favorite) {
+            games.push({
+                game: game,
+                isFavorite: true
+            });
+        }
+    }
+
+    return games.slice(0, limit);
+}
+
+function getMostLaunchedGames(limit = 5) {
+    var games = [];
+
+    for (var i = 0; i < api.allGames.count; i++) {
+        var game = api.allGames.get(i);
+        if (game && game.playCount > 0) {
+            games.push({
+                game: game,
+                playCount: game.playCount
+            });
+        }
+    }
+
+    games.sort(function(a, b) {
+        return b.playCount - a.playCount;
+    });
+
+    return games.slice(0, limit);
+}
+
+function getForgottenGames(limit = 5) {
+    var games = [];
+    var now = new Date();
+
+    for (var i = 0; i < api.allGames.count; i++) {
+        var game = api.allGames.get(i);
+        if (game && game.lastPlayed && game.lastPlayed.getTime() > 0) {
+            var daysSincePlayed = Math.floor((now - game.lastPlayed) / (1000 * 60 * 60 * 24));
+            if (daysSincePlayed > 30) {
+                games.push({
+                    game: game,
+                    daysSincePlayed: daysSincePlayed
+                });
+            }
+        }
+    }
+
+    games.sort(function(a, b) {
+        return b.daysSincePlayed - a.daysSincePlayed;
+    });
+
+    return games.slice(0, limit);
+}
+
+function getWeeklyMostPlayed(limit = 5) {
+    var games = [];
+    var oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    for (var i = 0; i < api.allGames.count; i++) {
+        var game = api.allGames.get(i);
+        if (game && game.lastPlayed && game.lastPlayed >= oneWeekAgo && game.playCount > 0) {
+            games.push({
+                game: game,
+                playCount: game.playCount
+            });
+        }
+    }
+
+    games.sort(function(a, b) {
+        return b.playCount - a.playCount;
+    });
+
+    return games.slice(0, limit);
+}
+
+function formatPlayTime(seconds) {
+    var hours = Math.floor(seconds / 3600);
+    var minutes = Math.floor((seconds % 3600) / 60);
+    return hours + "h " + minutes + "m";
+}
+
+function getFavoriteGamesWithAssets(limit = 10) {
+    var games = [];
+
+    for (var i = 0; i < api.allGames.count; i++) {
+        var game = api.allGames.get(i);
+        if (game && game.favorite) {
+            games.push({
+                game: game,
+                isFavorite: true,
+                hasLogo: game.assets && game.assets.logo && game.assets.logo !== ""
+            });
+        }
+    }
+
+    return games.slice(0, limit);
+}

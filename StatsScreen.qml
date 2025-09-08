@@ -30,10 +30,14 @@ FocusScope {
     property var achievementState: ({})
     property real headerHeight: parent.height * 0.12
     property real sectionSpacing: parent.height * 0.03
-    property real boxSpacing: parent.width * 0.02
+    property real boxSpacing: parent.width * 0.01
     property real boxHeight: parent.height * 0.15
     property real sectionTitleSize: parent.height * 0.03
     property real dividerHeight: 1
+    property var mostPlayedGames: []
+    property var favoriteGames: []
+    property var forgottenGames: []
+    property var weeklyMostPlayed: []
 
     signal closed()
     property var returnFocusFunction: null
@@ -73,6 +77,17 @@ FocusScope {
                 if (game.playCount) totalPlayCount += game.playCount;
             }
         }
+
+        mostPlayedGames = Utils.getMostPlayedGames(5);
+        favoriteGames = Utils.getFavoriteGamesWithAssets(10);
+        forgottenGames = Utils.getForgottenGames(5);
+        weeklyMostPlayed = Utils.getWeeklyMostPlayed(5);
+    }
+
+    function formatPlayTime(seconds) {
+        var hours = Math.floor(seconds / 3600);
+        var minutes = Math.floor((seconds % 3600) / 60);
+        return hours + "h " + minutes + "m";
     }
 
     function loadAchievementData() {
@@ -240,7 +255,7 @@ FocusScope {
                         }
                         text: {
                             if (currentLevel.level >= 10) {
-                                return "🎉 Maximum level reached!";
+                                return "ðŸŽ‰ Maximum level reached!";
                             } else {
                                 var nextLevel = Utils.Achievements.xpToReachLevel(currentLevel.level + 1);
                                 var xpNeeded = Math.max(0, nextLevel - totalXP);
@@ -552,9 +567,11 @@ FocusScope {
                     color: "#333333"
                 }
 
-                Flow {
+                GridLayout {
                     width: parent.width
-                    spacing: boxSpacing
+                    columns: 4
+                    rowSpacing: boxSpacing
+                    columnSpacing: boxSpacing
 
                     Repeater {
                         model: {
@@ -614,8 +631,8 @@ FocusScope {
                         }
 
                         delegate: Rectangle {
-                            width: (parent.width - boxSpacing * 2) / 3
-                            height: width * 1.1
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: width * 0.88
                             radius: 10
                             color: "#1a1a1a"
                             border.color: "#333333"
@@ -633,7 +650,7 @@ FocusScope {
                                     horizontalAlignment: Text.AlignHCenter
                                     text: modelData.badge.name
                                     font.family: global.fonts.sans
-                                    font.pixelSize: parent.height * 0.12
+                                    font.pixelSize: parent.height * 0.14
                                     font.bold: true
                                     color: "white"
                                     wrapMode: Text.WordWrap
@@ -645,13 +662,13 @@ FocusScope {
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     text: modelData.formattedProgress
                                     font.family: global.fonts.sans
-                                    font.pixelSize: parent.height * 0.1
+                                    font.pixelSize: parent.height * 0.12
                                     color: "#aaaaaa"
                                 }
 
                                 Rectangle {
                                     width: parent.width
-                                    height: parent.height * 0.08
+                                    height: parent.height * 0.09
                                     radius: height / 2
                                     color: "#333333"
 
@@ -670,7 +687,7 @@ FocusScope {
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     text: modelData.percent + "%"
                                     font.family: global.fonts.sans
-                                    font.pixelSize: parent.height * 0.09
+                                    font.pixelSize: parent.height * 0.11
                                     color: "white"
                                     opacity: 0.8
                                 }
@@ -679,6 +696,290 @@ FocusScope {
                     }
                 }
             }
+
+            Column {
+                Layout.fillWidth: true
+                spacing: sectionSpacing * 0.5
+
+                Text {
+                    text: "Game Insights"
+                    font.family: global.fonts.sans
+                    font.pixelSize: sectionTitleSize
+                    font.bold: true
+                    color: "white"
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: dividerHeight
+                    color: "#333333"
+                }
+
+                Column {
+                    width: parent.width
+                    spacing: boxSpacing * 0.5
+                    visible: mostPlayedGames.length > 0
+
+                    Text {
+                        text: "Most Played Games"
+                        font.family: global.fonts.sans
+                        font.pixelSize: sectionTitleSize * 0.8
+                        font.bold: true
+                        color: "white"
+                        opacity: 0.9
+                    }
+
+                    Repeater {
+                        model: mostPlayedGames.slice(0, 3)
+
+                        delegate: Rectangle {
+                            width: parent.width
+                            height: boxHeight * 0.6
+                            radius: 5
+                            color: "#1a1a1a"
+                            border.color: "#333333"
+                            border.width: 1
+
+                            Row {
+                                anchors.fill: parent
+                                anchors.margins: 10
+                                spacing: 10
+
+                                Text {
+                                    text: (index + 1) + "."
+                                    font.family: global.fonts.sans
+                                    font.pixelSize: parent.height * 0.3
+                                    font.bold: true
+                                    color: getPositionColor(index + 1)
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                                Text {
+                                    width: parent.width * 0.5
+                                    text: modelData.game.title
+                                    font.family: global.fonts.sans
+                                    font.pixelSize: parent.height * 0.25
+                                    color: "white"
+                                    elide: Text.ElideRight
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                                Text {
+                                    text: formatPlayTime(modelData.playTime)
+                                    font.family: global.fonts.sans
+                                    font.pixelSize: parent.height * 0.2
+                                    color: "#aaaaaa"
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Column {
+                    width: parent.width
+                    spacing: boxSpacing * 0.5
+                    visible: favoriteGames.length > 0
+
+                    Text {
+                        text: "Favorite Games"
+                        font.family: global.fonts.sans
+                        font.pixelSize: sectionTitleSize * 0.8
+                        font.bold: true
+                        color: "white"
+                        opacity: 0.9
+                    }
+
+                    Column {
+                        width: parent.width
+                        spacing: boxSpacing * 0.8
+
+                        Row {
+                            width: parent.width
+                            spacing: boxSpacing
+                            height: (parent.width - boxSpacing * 4) / 5 * 0.7
+
+                            Repeater {
+                                model: favoriteGames.slice(0, 5)
+
+                                delegate: Rectangle {
+                                    width: (parent.width - boxSpacing * 4) / 5
+                                    height: width * 0.7
+                                    radius: 5
+                                    color: "#1a1a1a"
+                                    border.color: "#333333"
+                                    border.width: 1
+
+                                    Column {
+                                        anchors.fill: parent
+                                        anchors.margins: 3
+                                        spacing: 2
+
+                                        Image {
+                                            id: favoriteImage
+                                            width: parent.width * 0.7
+                                            height: width
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            source: modelData.game.assets.logo || ""
+                                            fillMode: Image.PreserveAspectFit
+                                            mipmap: true
+                                            visible: status === Image.Ready
+                                        }
+
+                                        Text {
+                                            width: parent.width
+                                            height: favoriteImage.visible ? 0 : parent.height
+                                            text: modelData.game.title
+                                            font.family: global.fonts.sans
+                                            font.pixelSize: Math.min(parent.height * 0.15, 10)
+                                            color: "white"
+                                            wrapMode: Text.WordWrap
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
+                                            maximumLineCount: 2
+                                            elide: Text.ElideRight
+                                            visible: !favoriteImage.visible
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Row {
+                            width: parent.width
+                            spacing: boxSpacing
+                            height: (parent.width - boxSpacing * 4) / 5 * 0.7
+                            visible: favoriteGames.length > 5
+
+                            Repeater {
+                                model: favoriteGames.slice(5, 10)
+
+                                delegate: Rectangle {
+                                    width: (parent.width - boxSpacing * 4) / 5
+                                    height: width * 0.7
+                                    radius: 5
+                                    color: "#1a1a1a"
+                                    border.color: "#333333"
+                                    border.width: 1
+
+                                    Column {
+                                        anchors.fill: parent
+                                        anchors.margins: 3
+                                        spacing: 2
+
+                                        Image {
+                                            id: favoriteImage
+                                            width: parent.width * 0.7
+                                            height: width
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            source: modelData.game.assets.logo || ""
+                                            fillMode: Image.PreserveAspectFit
+                                            mipmap: true
+                                            visible: status === Image.Ready
+                                        }
+
+                                        Text {
+                                            width: parent.width
+                                            height: favoriteImage.visible ? 0 : parent.height
+                                            text: modelData.game.title
+                                            font.family: global.fonts.sans
+                                            font.pixelSize: Math.min(parent.height * 0.15, 10)
+                                            color: "white"
+                                            wrapMode: Text.WordWrap
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
+                                            maximumLineCount: 2
+                                            elide: Text.ElideRight
+                                            visible: !favoriteImage.visible
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: favoriteGames.length + " of 10 favorite spots filled"
+                        font.family: global.fonts.sans
+                        font.pixelSize: sectionTitleSize * 0.6
+                        color: "#666666"
+                        horizontalAlignment: Text.AlignHCenter
+                        padding: 5
+                        visible: favoriteGames.length > 0 && favoriteGames.length < 10
+                    }
+                }
+
+                Column {
+                    width: parent.width
+                    spacing: boxSpacing * 0.5
+                    visible: weeklyMostPlayed.length > 0
+
+                    Text {
+                        text: "This Week's Most Played"
+                        font.family: global.fonts.sans
+                        font.pixelSize: sectionTitleSize * 0.8
+                        font.bold: true
+                        color: "white"
+                        opacity: 0.9
+                    }
+
+                    Repeater {
+                        model: weeklyMostPlayed.slice(0, 3)
+
+                        delegate: Rectangle {
+                            width: parent.width
+                            height: boxHeight * 0.6
+                            radius: 5
+                            color: "#1a1a1a"
+                            border.color: "#333333"
+                            border.width: 1
+
+                            Row {
+                                anchors.fill: parent
+                                anchors.margins: 10
+                                spacing: 10
+
+                                Text {
+                                    text: (index + 1) + "."
+                                    font.family: global.fonts.sans
+                                    font.pixelSize: parent.height * 0.3
+                                    font.bold: true
+                                    color: getPositionColor(index + 1)
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                                Text {
+                                    width: parent.width * 0.5
+                                    text: modelData.game.title
+                                    font.family: global.fonts.sans
+                                    font.pixelSize: parent.height * 0.25
+                                    color: "white"
+                                    elide: Text.ElideRight
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                                Text {
+                                    text: modelData.playCount + " times"
+                                    font.family: global.fonts.sans
+                                    font.pixelSize: parent.height * 0.2
+                                    color: "#aaaaaa"
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    function getPositionColor(position) {
+        switch(position) {
+            case 1: return "#FFD700";
+            case 2: return "#C0C0C0";
+            case 3: return "#CD7F32";
+            default: return "white";
         }
     }
 
