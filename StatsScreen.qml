@@ -8,7 +8,6 @@ import QtQuick.Layouts 1.15
 import QtGraphicalEffects 1.12
 import "utils.js" as Utils
 
-
 FocusScope {
     id: statsScreen
     anchors.fill: parent
@@ -83,7 +82,7 @@ FocusScope {
         favoriteGames = Utils.getFavoriteGamesWithAssets(10);
         forgottenGames = Utils.getForgottenGames(5);
         weeklyMostPlayed = Utils.getWeeklyMostPlayed(5);
-        allCollections = Utils.getLargestCollections(); // Sin límite
+        allCollections = Utils.getLargestCollections();
     }
 
     function formatPlayTime(seconds) {
@@ -319,24 +318,6 @@ FocusScope {
                             color: "white"
                             opacity: 0.6
                         }
-
-                        /*Text {
-                            text: totalXP  // ← TU XP ACTUAL (43)
-                            font.family: global.fonts.sans
-                            font.pixelSize: sectionTitleSize * 1.0
-                            color: "white"
-                            opacity: 0.6
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        Text {
-                            text: Utils.Achievements.xpToReachLevel(currentLevel.level + 1)  // ← XP PARA NIVEL 2 (100)
-                            font.family: global.fonts.sans
-                            font.pixelSize: sectionTitleSize * 0.5
-                            color: "white"
-                            opacity: 0.6
-                        }*/
                     }
                 }
             }
