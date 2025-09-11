@@ -613,3 +613,43 @@ function getFavoriteGamesWithAssets(limit = 10) {
 
     return games.slice(0, limit);
 }
+
+function getCollectionsWithGameCount() {
+    var collections = [];
+
+    for (var i = 0; i < api.collections.count; i++) {
+        var collection = api.collections.get(i);
+        if (collection && collection.games && collection.games.count > 0) {
+            collections.push({
+                name: collection.name,
+                gameCount: collection.games.count,
+                shortName: collection.shortName || ""
+            });
+        }
+    }
+
+    // Ordenar por cantidad de juegos (descendente)
+    collections.sort(function(a, b) {
+        return b.gameCount - a.gameCount;
+    });
+
+    return collections;
+}
+
+function getLargestCollections(limit = 0) {
+    var collections = getCollectionsWithGameCount();
+    if (limit > 0) {
+        return collections.slice(0, limit);
+    }
+    return collections;
+}
+
+function getCollectionByName(name) {
+    for (var i = 0; i < api.collections.count; i++) {
+        var collection = api.collections.get(i);
+        if (collection && collection.name === name) {
+            return collection;
+        }
+    }
+    return null;
+}

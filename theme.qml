@@ -127,6 +127,23 @@ FocusScope {
         }
     }
 
+    function resetFocusAfterGameLaunch() {
+        currentCollectionIndex = 0;
+        currentGameIndex = 0;
+
+        updateCollectionsList();
+
+        topBar.isFocused = true;
+        topBarVisible = true;
+        gameInfoVisible = false;
+        themeOpacity = 1.0;
+        savedFocusState = null;
+        previousFocusState = null;
+
+        forceActiveFocus();
+
+    }
+
     function toggleCurrentGameFavorite() {
         var game = getCurrentGame();
         if (game) {
@@ -488,7 +505,7 @@ FocusScope {
                 Text {
                     text: {
                         if (currentLevel.level >= 10) {
-                            return `Maximum level reached!`;
+                            return "Maximum level reached!";
                         } else {
                             var progressPercent = Math.round(levelProgress * 100);
                             return `${progressPercent}% progress toward level ${currentLevel.level + 1}`;
@@ -1057,6 +1074,13 @@ FocusScope {
         getFirstGenreFunction: root.getFirstGenre
 
         onLaunchGame: {
+            var launchState = {
+                collectionIndex: currentCollectionIndex,
+                gameIndex: currentGameIndex,
+                topBarFocused: topBar.isFocused
+            };
+            api.memory.set("preLaunchState", launchState);
+
             launchCurrentGame();
         }
 
@@ -1069,6 +1093,13 @@ FocusScope {
 
         onClosed: {
             hideGameInfo();
+        }
+
+        onGameInfoClosed: {
+            if (!statsScreenActive) {
+                forceActiveFocus();
+                topBar.isFocused = true;
+            }
         }
 
         enabled: visible
@@ -1085,6 +1116,7 @@ FocusScope {
             NumberAnimation { duration: 500; easing.type: Easing.OutCubic }
         }
     }
+
 
     Keys.onPressed: {
 
@@ -1252,14 +1284,10 @@ FocusScope {
             currentLevel = Utils.getLevelFromXP(totalXP);
             levelProgress = Utils.getProgressToNextLevel(totalXP, currentLevel);
 
-            console.log("Achievements System: Level", currentLevel.level, "XP:", totalXP,
-                        "Progress:", Math.round(levelProgress * 100) + "%");
-
             if (result.newBadges && result.newBadges.length > 0) {
                 showBadgeNotifications(result.newBadges);
             }
         } catch (e) {
-            console.log("EError initializing achievement system:", e);
             totalXP = 0;
             currentLevel = { level: 1, name: "Rookie", icon: "🥚", xpRequired: 0 };
             levelProgress = 0;

@@ -28,6 +28,7 @@ FocusScope {
 
     signal launchGame()
     signal toggleFavorite()
+    signal gameInfoClosed()
     signal toggleShader()
     signal closed()
 
@@ -53,6 +54,10 @@ FocusScope {
     function close() {
         showing = false;
         closeTimer.start();
+
+        if (typeof parent !== 'undefined' && parent && typeof parent.gameInfoClosed === 'function') {
+            parent.gameInfoClosed();
+        }
     }
 
     function navigateButtons(direction) {
