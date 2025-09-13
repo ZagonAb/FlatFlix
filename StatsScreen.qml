@@ -123,7 +123,7 @@ FocusScope {
 
         Text {
             anchors.centerIn: parent
-            text: "GAME STATISTICS"
+            text: "ACHIEVEMENT STATISTICS"
             font.family: global.fonts.sans
             font.pixelSize: headerHeight * 0.4
             font.bold: true
