@@ -9,7 +9,7 @@
 
 ![screen2](https://github.com/ZagonAb/FlatFlix/blob/6d1c5972ca6ee87ad388bf58fa0c74cf537f3c69/.meta/screenshots/screen2.png)
 
-![achievements](https://github.com/ZagonAb/FlatFlix/blob/fd6f7c93f847eb085631004d2e35386c1dad9547/.meta/screenshots/achievements.png)
+![screen3](https://github.com/ZagonAb/FlatFlix/blob/fd6f7c93f847eb085631004d2e35386c1dad9547/.meta/screenshots/achievements.png)
 
 
 ## Installation
