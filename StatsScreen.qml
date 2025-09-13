@@ -472,9 +472,11 @@ FocusScope {
                     color: "#333333"
                 }
 
-                Flow {
+                GridLayout {
                     width: parent.width
-                    spacing: boxSpacing
+                    columns: 4
+                    rowSpacing: boxSpacing
+                    columnSpacing: boxSpacing
 
                     Repeater {
                         model: {
@@ -495,8 +497,8 @@ FocusScope {
                         }
 
                         delegate: Rectangle {
-                            width: (parent.width - boxSpacing * 3) / 4
-                            height: width * 1.2
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: width * 0.6
                             radius: 10
                             color: "#1a1a1a"
                             border.color: "#333333"
@@ -523,28 +525,46 @@ FocusScope {
                                     horizontalAlignment: Text.AlignHCenter
                                     text: modelData.name
                                     font.family: global.fonts.sans
-                                    font.pixelSize: parent.height * 0.12
+                                    font.pixelSize: parent.height * 0.14
                                     font.bold: true
                                     color: "white"
                                     wrapMode: Text.WordWrap
                                     maximumLineCount: 2
                                     elide: Text.ElideRight
                                 }
+
+                                Text {
+                                    width: parent.width
+                                    horizontalAlignment: Text.AlignHCenter
+                                    text: Utils.Achievements.getBadgeDescription(modelData.id)
+                                    font.family: global.fonts.sans
+                                    font.pixelSize: parent.height * 0.10
+                                    color: "#aaaaaa"
+                                    wrapMode: Text.WordWrap
+                                    maximumLineCount: 1
+                                    elide: Text.ElideRight
+                                }
                             }
                         }
                     }
 
-                    Text {
-                        width: parent.width
-                        text: "You haven't unlocked any achievements yet. Keep playing!"
-                        font.family: global.fonts.sans
-                        font.pixelSize: sectionTitleSize * 0.8
-                        color: "#666666"
-                        horizontalAlignment: Text.AlignHCenter
-                        padding: 20
+                    Rectangle {
+                        Layout.columnSpan: 4
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: boxHeight * 0.6
+                        color: "transparent"
                         visible: {
                             var earned = achievementState.badges ? achievementState.badges.earned : [];
                             return earned.length === 0;
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "You haven't unlocked any achievements yet. Keep playing!"
+                            font.family: global.fonts.sans
+                            font.pixelSize: sectionTitleSize * 0.8
+                            color: "#666666"
+                            horizontalAlignment: Text.AlignHCenter
                         }
                     }
                 }
@@ -691,6 +711,18 @@ FocusScope {
                                     font.pixelSize: parent.height * 0.11
                                     color: "white"
                                     opacity: 0.8
+                                }
+
+                                Text {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: Utils.Achievements.getUpcomingDescription(modelData.badge, "")
+                                    font.family: global.fonts.sans
+                                    font.pixelSize: parent.height * 0.09
+                                    color: "#aaaaaa"
+                                    opacity: 0.7
+                                    wrapMode: Text.WordWrap
+                                    maximumLineCount: 1
+                                    elide: Text.ElideRight
                                 }
                             }
                         }

@@ -377,6 +377,7 @@ var Achievements = {
     xpToReachLevel: xpToReachLevel,
     levelFromXP: levelFromXP,
     progressWithinLevel: progressWithinLevel,
+
     getBadgeIcon: function(badgeId) {
         for (var category in BADGES) {
             for (var i = 0; i < BADGES[category].length; i++) {
@@ -387,6 +388,7 @@ var Achievements = {
         }
         return "";
     },
+
     getBadgeName: function(badgeId) {
         for (var category in BADGES) {
             for (var i = 0; i < BADGES[category].length; i++) {
@@ -396,6 +398,14 @@ var Achievements = {
             }
         }
         return "";
+    },
+
+    getBadgeDescription: function(badgeId) {
+        return getAchievementDescription(badgeId);
+    },
+
+    getUpcomingDescription: function(badge, category) {
+        return getUpcomingAchievementDescription(badge, category);
     }
 };
 
@@ -628,7 +638,6 @@ function getCollectionsWithGameCount() {
         }
     }
 
-    // Ordenar por cantidad de juegos (descendente)
     collections.sort(function(a, b) {
         return b.gameCount - a.gameCount;
     });
@@ -652,4 +661,82 @@ function getCollectionByName(name) {
         }
     }
     return null;
+}
+
+function getAchievementDescription(badgeId) {
+    var descriptions = {
+        "time_5h": "Played for 5 hours total",
+        "time_10h": "Reached 10 hours of gameplay",
+        "time_25h": "Dedicated 25 hours to gaming",
+        "time_50h": "Accumulated 50 hours played",
+        "time_100h": "Reached 100 hours milestone",
+        "time_250h": "Devoted 250 hours to gaming",
+        "time_500h": "Achieved 500 hours played",
+        "time_1000h": "Legendary 1000 hours completed",
+        "time_2500h": "Epic 2500 hours reached",
+        "time_5000h": "Mythical 5000 hours achieved",
+        "time_10000h": "Immortal 10000 hours mastered",
+
+        "pc_10": "Launched games 10 times",
+        "pc_25": "Started games 25 times",
+        "pc_50": "Launched games 50 times",
+        "pc_100": "Started games 100 times",
+        "pc_250": "Launched games 250 times",
+        "pc_500": "Started games 500 times",
+        "pc_1000": "Launched games 1000 times",
+
+        "streak_3": "Played 3 days in a row",
+        "streak_7": "Gaming streak of 7 days",
+        "streak_14": "Maintained 14-day streak",
+        "streak_30": "Achieved 30-day streak",
+        "streak_60": "Sustained 60-day streak",
+        "streak_100": "Incredible 100-day streak",
+
+        "var_5": "Played 5 different games",
+        "var_10": "Experienced 10 different games",
+        "var_20": "Tried 20 different games",
+        "var_50": "Played 50 different games",
+        "var_100": "Mastered 100 different games"
+    };
+
+    return descriptions[badgeId] || "Achievement unlocked";
+}
+
+function getUpcomingAchievementDescription(badge, category) {
+    var descriptions = {
+        "time_5h": "Play for 5 hours total",
+        "time_10h": "Reach 10 hours of gameplay",
+        "time_25h": "Dedicate 25 hours to gaming",
+        "time_50h": "Accumulate 50 hours played",
+        "time_100h": "Reach 100 hours milestone",
+        "time_250h": "Devote 250 hours to gaming",
+        "time_500h": "Achieve 500 hours played",
+        "time_1000h": "Complete 1000 hours",
+        "time_2500h": "Reach 2500 hours",
+        "time_5000h": "Achieve 5000 hours",
+        "time_10000h": "Master 10000 hours",
+
+        "pc_10": "Launch games 10 times",
+        "pc_25": "Start games 25 times",
+        "pc_50": "Launch games 50 times",
+        "pc_100": "Start games 100 times",
+        "pc_250": "Launch games 250 times",
+        "pc_500": "Start games 500 times",
+        "pc_1000": "Launch games 1000 times",
+
+        "streak_3": "Play 3 consecutive days",
+        "streak_7": "Maintain 7-day streak",
+        "streak_14": "Keep 14-day streak",
+        "streak_30": "Achieve 30-day streak",
+        "streak_60": "Sustain 60-day streak",
+        "streak_100": "Reach 100-day streak",
+
+        "var_5": "Play 5 different games",
+        "var_10": "Experience 10 different games",
+        "var_20": "Try 20 different games",
+        "var_50": "Play 50 different games",
+        "var_100": "Master 100 different games"
+    };
+
+    return descriptions[badge.id] || "Complete this challenge";
 }
