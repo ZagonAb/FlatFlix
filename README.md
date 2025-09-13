@@ -5,7 +5,7 @@
 
 ![screen](https://github.com/ZagonAb/FlatFlix/blob/2ede92c80554b60d502b0dfa485195aaf2e1a90f/.meta/screenshots/screen0.png)
 
-![screen1](https://github.com/ZagonAb/FlatFlix/blob/6d1c5972ca6ee87ad388bf58fa0c74cf537f3c69/.meta/screenshots/screen1.png)
+![screen1](https://github.com/ZagonAb/FlatFlix/blob/c375aeb287a24c57833ab4b7bdfe0e6e738c3077/.meta/screenshots/screen1.png)
 
 ![screen2](https://github.com/ZagonAb/FlatFlix/blob/6d1c5972ca6ee87ad388bf58fa0c74cf537f3c69/.meta/screenshots/screen2.png)
 
