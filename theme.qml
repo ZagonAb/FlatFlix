@@ -24,6 +24,7 @@ FocusScope {
     property var savedFocusState: null
     property bool showSearch: topBar.currentSection === 0
     property bool searchVisible: topBar.currentSection === 0
+    property bool isResettingAfterLaunch: false
     property real themeOpacity: 1.0
 
     property int totalXP: 0
@@ -128,20 +129,30 @@ FocusScope {
     }
 
     function resetFocusAfterGameLaunch() {
+        isResettingAfterLaunch = true;
+
+        if (gameInfoVisible) {
+            gameInfoVisible = false;
+            themeOpacity = 1.0;
+        }
+
         currentCollectionIndex = 0;
         currentGameIndex = 0;
 
         updateCollectionsList();
 
-        topBar.isFocused = true;
+        topBar.isFocused = false;
         topBarVisible = true;
-        gameInfoVisible = false;
-        themeOpacity = 1.0;
         savedFocusState = null;
         previousFocusState = null;
 
         forceActiveFocus();
 
+        if (selectedGame && typeof selectedGame.resumeVideo === "function") {
+            selectedGame.resumeVideo();
+        }
+
+        resetTimer.start();
     }
 
     function toggleCurrentGameFavorite() {
@@ -684,6 +695,14 @@ FocusScope {
 
         if (!previousFocusState || (!previousFocusState.searchState && !previousFocusState.gameInfoState)) {
             forceActiveFocus();
+        }
+    }
+
+    Timer {
+        id: resetTimer
+        interval: 100
+        onTriggered: {
+            isResettingAfterLaunch = false;
         }
     }
 

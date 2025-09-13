@@ -55,7 +55,7 @@ FocusScope {
         showing = false;
         closeTimer.start();
 
-        if (typeof parent !== 'undefined' && parent && typeof parent.gameInfoClosed === 'function') {
+        if (typeof parent !== 'undefined' && parent && typeof parent.gameInfoClosed === 'function' && !parent.isResettingAfterLaunch) {
             parent.gameInfoClosed();
         }
     }
