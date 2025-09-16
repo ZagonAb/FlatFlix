@@ -564,13 +564,6 @@ FocusScope {
                         anchors.fill: parent
                         onClicked: gameInfoShow.launchGame()
                     }
-
-                    Keys.onPressed: {
-                        if (!event.isAutoRepeat && api.keys.isAccept(event)) {
-                            gameInfoShow.launchGame();
-                            event.accepted = true;
-                        }
-                    }
                 }
 
                 Rectangle {
@@ -627,13 +620,6 @@ FocusScope {
                         enabled: !isTogglingFavorite
                         onClicked: toggleFavoriteWithLoading()
                     }
-
-                    Keys.onPressed: {
-                        if (api.keys.isAccept(event) && !isTogglingFavorite) {
-                            toggleFavoriteWithLoading();
-                            event.accepted = true;
-                        }
-                    }
                 }
 
                 Rectangle {
@@ -676,13 +662,6 @@ FocusScope {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: toggleCrtEffect()
-                    }
-
-                    Keys.onPressed: {
-                        if (api.keys.isAccept(event)) {
-                            toggleCrtEffect();
-                            event.accepted = true;
-                        }
                     }
                 }
             }
@@ -758,15 +737,15 @@ FocusScope {
     }
 
     Keys.onPressed: {
-        if (api.keys.isCancel(event)) {
+        if (!event.isAutoRepeat && api.keys.isCancel(event)) {
             gameInfoShow.close();
             event.accepted = true;
-        } else if (api.keys.isFilters(event)) {
+        } else if (!event.isAutoRepeat && api.keys.isFilters(event)) {
             if (gameInfoShow.parent && typeof gameInfoShow.parent.showStatsScreen === "function") {
                 gameInfoShow.parent.showStatsScreen();
             }
             event.accepted = true;
-        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+        } else if (!event.isAutoRepeat && api.keys.isAccept(event)) {
             if (launchButton.activeFocus) {
                 gameInfoShow.launchGame();
             } else if (favoriteButton.activeFocus && !isTogglingFavorite) {
@@ -783,9 +762,6 @@ FocusScope {
             event.accepted = true;
         } else if (event.key === Qt.Key_Up) {
             navigateButtons("up");
-            event.accepted = true;
-        } else if (event.key === Qt.Key_F) {
-            gameInfoShow.toggleFavorite();
             event.accepted = true;
         }
     }

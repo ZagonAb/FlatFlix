@@ -1281,6 +1281,7 @@ FocusScope {
     }
 
     Component.onCompleted: {
+        resetFocusAfterGameLaunch();
         updateCollectionsList();
         topBar.root = root;
 
