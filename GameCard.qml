@@ -19,6 +19,8 @@ Item {
     property string emptyCardColor: "#141414"
     property bool isPlaying: false
     property bool wasPlayingBeforeFocusLoss: false
+    property bool gameInfoActive: false
+    property bool pauseRequested: false
 
     signal gameSelected()
 
@@ -529,13 +531,16 @@ Item {
 
     Timer {
         id: videoStartTimer
-        interval: 500
+        interval: 1000
         running: false
         repeat: false
 
         onTriggered: {
-            if (gameData && gameData.assets.video && isCurrentItem && !compactMode && !topBarFocused) {
+            if (gameData && gameData.assets.video && isCurrentItem && !compactMode && !topBarFocused && !gameInfoActive) {
+                //console.log("GameCard: Starting video after timer");
                 videoPlayer.source = gameData.assets.video;
+            } else {
+                //console.log("GameCard: Skipping video start - gameInfoActive:", gameInfoActive);
             }
         }
     }
@@ -589,12 +594,17 @@ Item {
     }
 
     onTopBarFocusedChanged: {
+        var cardId = (gameData && gameData.title) ? gameData.title.substring(0, 10) : "Unknown";
+        //console.log("GameCard [" + cardId + "]: topBarFocused changed to", topBarFocused, "isCurrentItem:", isCurrentItem);
+
+        if (!isCurrentItem) return;
+
         if (topBarFocused) {
             pauseVideo();
             videoPlayer.source = "";
             screenshot.opacity = 1.0;
             wasPlayingBeforeFocusLoss = false;
-        } else if (isCurrentItem && !compactMode && !showEmptyCard) {
+        } else if (!compactMode && !showEmptyCard) {
             var isInSearchSection = false;
             if (typeof root !== 'undefined' && root && root.searchVisible !== undefined) {
                 isInSearchSection = root.searchVisible;
@@ -604,6 +614,15 @@ Item {
                 handleGameChange();
                 resumeVideo();
             }
+        }
+    }
+
+    onGameInfoActiveChanged: {
+        var cardId = (gameData && gameData.title) ? gameData.title.substring(0, 10) : "Unknown";
+        //console.log("GameCard [" + cardId + "]: gameInfoActive changed to", gameInfoActive, "isCurrentItem:", isCurrentItem);
+
+        if (gameInfoActive && isCurrentItem) {
+            pauseVideo();
         }
     }
 
@@ -620,11 +639,12 @@ Item {
 
         videoPlayer.source = "";
 
-        if (isCurrentItem && !compactMode && !showEmptyCard && !topBarFocused) {
+        if (isCurrentItem && !compactMode && !showEmptyCard && !topBarFocused && !gameInfoActive) {
             screenshot.opacity = 1.0;
             infoRestoreTimer.start();
 
             if (gameData && gameData.assets.video) {
+                //console.log("GameCard: Starting video timer in handleGameChange");
                 videoStartTimer.start();
             }
         } else {
@@ -667,24 +687,82 @@ Item {
             isPlaying = true;
         }
     }
-
     function pauseVideo() {
+        var cardId = (gameData && gameData.title) ? gameData.title.substring(0, 10) : "Unknown";
+
+        if (pauseRequested) {
+            //console.log("GameCard [" + cardId + "]: pauseVideo already requested, skipping");
+            return;
+        }
+
+        pauseRequested = true;
+
+        /*console.log("GameCard [" + cardId + "]: pauseVideo called", {
+            playbackState: videoPlayer.playbackState,
+            source: videoPlayer.source !== "",
+            gameInfoActive: gameInfoActive,
+            isCurrentItem: isCurrentItem,
+            compactMode: compactMode,
+            topBarFocused: topBarFocused
+        });*/
+
+        if (!isCurrentItem && videoPlayer.playbackState !== MediaPlayer.PlayingState) {
+            //console.log("GameCard [" + cardId + "]: Not current item and no video playing, skipping");
+            pauseRequested = false;
+            return;
+        }
+
+        videoStartTimer.stop();
+
         if (videoPlayer.playbackState === MediaPlayer.PlayingState) {
+            //console.log("GameCard [" + cardId + "]: Pausing active video");
             videoPlayer.pause();
             isPlaying = false;
             wasPlayingBeforeFocusLoss = true;
+        } else if (videoPlayer.source !== "" && videoPlayer.status === MediaPlayer.Loaded) {
+            //console.log("GameCard [" + cardId + "]: Video loaded but not playing, marking for resume");
+            wasPlayingBeforeFocusLoss = true;
+        } else if (videoStartTimer.running || (gameData && gameData.assets.video && videoPlayer.source === "")) {
+            //console.log("GameCard [" + cardId + "]: Video was about to start, marking as should resume");
+            wasPlayingBeforeFocusLoss = true;
         }
+
+        Qt.callLater(function() {
+            pauseRequested = false;
+        });
     }
 
     function resumeVideo() {
-        if (wasPlayingBeforeFocusLoss && isCurrentItem && !compactMode && !showEmptyCard && !topBarFocused) {
+        /*console.log("GameCard: Attempting to resume video", {
+            wasPlayingBeforeFocusLoss: wasPlayingBeforeFocusLoss,
+            isCurrentItem: isCurrentItem,
+            compactMode: compactMode,
+            showEmptyCard: showEmptyCard,
+            topBarFocused: topBarFocused,
+            hasVideoSource: videoPlayer.source !== "",
+            videoStatus: videoPlayer.status
+        });*/
+
+        if (!isCurrentItem) {
+            //console.log("GameCard: Not current item, skipping resume");
+            return;
+        }
+
+        if (isCurrentItem && !compactMode && !showEmptyCard && !topBarFocused) {
             var isInSearchSection = false;
             if (typeof root !== 'undefined' && root && root.searchVisible !== undefined) {
                 isInSearchSection = root.searchVisible;
             }
 
             if (!isInSearchSection) {
-                resumeTimer.start();
+                if (wasPlayingBeforeFocusLoss) {
+                    //console.log("GameCard: Resuming video that was playing before");
+                    resumeTimer.start();
+                } else if (gameData && gameData.assets.video && videoPlayer.source === "") {
+                    //console.log("GameCard: Starting video from beginning");
+                    videoPlayer.source = gameData.assets.video;
+                    videoStartTimer.start();
+                }
             }
         }
     }

@@ -22,6 +22,7 @@ FocusScope {
     property string sourceContext: "main"
     property bool isTogglingFavorite: false
     property int currentButtonIndex: 0
+    property bool isLaunching: false
 
     opacity: showing ? 1.0 : 0.0
     visible: opacity > 0
@@ -52,10 +53,22 @@ FocusScope {
     }
 
     function close() {
+        //console.log("GameInfoShow: Closing, isLaunching:", isLaunching, "sourceContext:", sourceContext);
+
         showing = false;
+
+        if (parent && sourceContext === "main") {
+            parent.gameInfoVisible = false;
+            parent.themeOpacity = 1.0;
+            if (parent.hasOwnProperty("topBarVisible")) {
+                parent.topBarVisible = true;
+            }
+        }
+
         closeTimer.start();
 
-        if (typeof parent !== 'undefined' && parent && typeof parent.gameInfoClosed === 'function' && !parent.isResettingAfterLaunch) {
+        if (typeof parent !== 'undefined' && parent && typeof parent.gameInfoClosed === 'function' && !isLaunching) {
+            //console.log("GameInfoShow: Calling parent.gameInfoClosed for context:", sourceContext);
             parent.gameInfoClosed();
         }
     }
@@ -87,7 +100,14 @@ FocusScope {
         id: closeTimer
         interval: 300
         onTriggered: {
+            //console.log("GameInfoShow: Close timer triggered");
+
+            if (typeof parent !== 'undefined' && parent && typeof parent.gameInfoClosed === 'function' && !isLaunching) {
+                parent.gameInfoClosed();
+            }
+
             gameInfoShow.closed();
+            isLaunching = false;
         }
     }
 
