@@ -288,7 +288,15 @@ FocusScope {
                     delegate: Rectangle {
                         width: genresList.width
                         height: root.height * 0.07
-                        color: genreListFocused && selectedGenreIndex === index ? "#ffffff" : "transparent"
+                        color: {
+                            if (genreListFocused && selectedGenreIndex === index) {
+                                return "#ffffff"
+                            } else if (resultsGridFocused && selectedGenreIndex === index && lastFocusOrigin === "genres") {
+                                return "#1d1c1d"
+                            } else {
+                                return "transparent"
+                            }
+                        }
                         radius: 30
 
                         Text {
