@@ -536,7 +536,6 @@ FocusScope {
                 Layout.fillHeight: false
             }
 
-
             ColumnLayout {
                 id: buttonsColumn
                 Layout.alignment: Qt.AlignLeft
@@ -577,6 +576,42 @@ FocusScope {
                             font.bold: launchButton.activeFocus
                             color: launchButton.activeFocus ? "#000000" : "#ffffff"
                             anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    Rectangle {
+                        id: launchProgressIndicator
+                        anchors {
+                            right: parent.right
+                            rightMargin: parent.height * 0.4
+                            verticalCenter: parent.verticalCenter
+                        }
+                        width: parent.width * 0.15
+                        height: parent.height * 0.1
+                        radius: height / 2
+                        visible: launchButton.activeFocus && gameData && gameData.playTime > 0
+                        color: launchButton.activeFocus ? "#40000000" : "transparent"
+
+                        Rectangle {
+                            id: launchProgressBar
+                            property real hours: gameData ? gameData.playTime / 3600 : 0
+                            property real k: 100
+                            property real progress: hours > 0 ? Math.log(1 + hours) / Math.log(1 + hours + k) : 0
+
+                            width: parent.width * progress
+                            height: parent.height
+                            radius: parent.radius
+
+                            color: {
+                                if (launchButton.activeFocus) {
+                                    let t = Math.min(1, hours / 200);
+                                    let r = Math.floor(76 + t * (255 - 76));
+                                    let g = Math.floor(175 - t * 175);
+                                    let b = Math.floor(80 - t * 80);
+                                    return Qt.rgba(r/255, g/255, b/255, 1);
+                                }
+                                return "transparent";
+                            }
                         }
                     }
 
