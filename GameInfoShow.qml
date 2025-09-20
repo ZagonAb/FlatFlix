@@ -289,7 +289,7 @@ FocusScope {
                     verticalOffset: 2
                     radius: 8
                     samples: 16
-                    color: "#80000000"
+                    color: "white"
                 }
             }
 
