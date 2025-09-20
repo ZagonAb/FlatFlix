@@ -25,9 +25,9 @@ FocusScope {
     property var genres: []
     property bool isLoading: false
     property bool showingAllGames: true
-
     property bool gameInfoVisible: false
     property var selectedGameForInfo: null
+    property bool showingMultiplayerFilter: false
 
     property var lettersAndNumbers: [
         "a", "b", "c", "d", "e", "f",
@@ -501,6 +501,15 @@ FocusScope {
         }
     }
 
+    Timer {
+        id: multiplayerSearchTimer
+        interval: 500
+        onTriggered: {
+            performMultiplayerSearchActual();
+            isLoading = false;
+        }
+    }
+
     function handleKeyPress(key) {
         if (key === "←" || key === "backspace" || key === "←") {
             if (searchText.length > 0) {
@@ -555,17 +564,27 @@ FocusScope {
     }
 
     function searchByGenre(genre) {
-        isLoading = true;
-        genreSearchTimer.restart();
+        if (genre === "Two or more players") {
+            searchByMultiplayer();
+        } else {
+            isLoading = true;
+            genreSearchTimer.restart();
+        }
     }
 
     function performGenreSearchActual() {
         var genre = genres[selectedGenreIndex];
         if (!genre) return;
 
+        if (genre === "Two or more players") {
+            performMultiplayerSearchActual();
+            return;
+        }
+
         var results = []
         var genreLower = genre.toLowerCase()
         showingAllGames = false;
+        showingMultiplayerFilter = false;
 
         for (var i = 0; i < api.allGames.count; i++) {
             var game = api.allGames.get(i)
@@ -643,6 +662,7 @@ FocusScope {
 
     function restoreAllGamesView() {
         showingAllGames = true;
+        showingMultiplayerFilter = false;
         searchText = "";
         filteredGames = [];
     }
@@ -660,7 +680,6 @@ FocusScope {
             return;
         }
 
-
         if (api.keys.isCancel(event)) {
             event.accepted = true
             if (keyboardFocused) {
@@ -670,10 +689,19 @@ FocusScope {
                 if (root.parent && typeof root.parent.restoreTopBarFocus === "function") {
                     root.parent.restoreTopBarFocus()
                 }
-            } else if (genreListFocused || resultsGridFocused) {
+            } else if (resultsGridFocused) {
+                if (lastFocusOrigin === "genres") {
+                    resultsGridFocused = false
+                    genreListFocused = true
+                    ensureGenreVisible()
+                } else if (lastFocusOrigin === "keyboard") {
+                    resultsGridFocused = false
+                    keyboardFocused = true
+                }
+            } else if (genreListFocused) {
                 genreListFocused = false
-                resultsGridFocused = false
                 keyboardFocused = true
+                lastFocusOrigin = "keyboard"
                 restoreAllGamesView();
             }
         } else if (api.keys.isAccept(event)) {
@@ -847,7 +875,10 @@ FocusScope {
         genreListFocused = false
         resultsGridFocused = false
         lastFocusOrigin = "keyboard"
-        genres = Utils.getUniqueGenresFromGames(25);
+
+        var uniqueGenres = Utils.getUniqueGenresFromGames(30);
+        genres = ["Two or more players"].concat(uniqueGenres);
+
         showingAllGames = true;
     }
 
@@ -863,8 +894,39 @@ FocusScope {
             searchText = "";
             filteredGames = [];
 
-            genres = Utils.getUniqueGenresFromGames(25);
+            var uniqueGenres = Utils.getUniqueGenresFromGames(30);
+            genres = ["Two or more players"].concat(uniqueGenres);
         }
+    }
+
+    function searchByMultiplayer() {
+        isLoading = true;
+        multiplayerSearchTimer.restart();
+    }
+
+    function performMultiplayerSearchActual() {
+        var results = []
+        showingAllGames = false;
+
+        for (var i = 0; i < api.allGames.count; i++) {
+            var game = api.allGames.get(i)
+            if (game) {
+                var playerCount = game.players || 1;
+                if (playerCount > 1) {
+                    results.push(game);
+                }
+            }
+        }
+
+        results.sort(function(a, b) {
+            var playersA = a.players || 1;
+            var playersB = b.players || 1;
+            return playersA - playersB;
+        });
+
+        filteredGames = results
+        searchText = "Two or more players"
+        showingMultiplayerFilter = true;
     }
 
     function takeFocusFromTopBar() {
