@@ -1162,15 +1162,29 @@ FocusScope {
         }
     }
 
-
     Keys.onPressed: {
-
         if (statsScreenActive) {
             return;
         }
 
         if (gameInfoVisible || searchVisible) {
             return;
+        }
+
+        if (api.keys.isNextPage(event)) {
+            if (selectedGame && typeof selectedGame.increaseVolume === "function") {
+                if (selectedGame.increaseVolume()) {
+                    event.accepted = true;
+                    return;
+                }
+            }
+        } else if (api.keys.isPrevPage(event)) {
+            if (selectedGame && typeof selectedGame.decreaseVolume === "function") {
+                if (selectedGame.decreaseVolume()) {
+                    event.accepted = true;
+                    return;
+                }
+            }
         }
 
         if (api.keys.isFilters(event)) {
@@ -1182,6 +1196,7 @@ FocusScope {
         if (gameInfoVisible) {
             return;
         }
+
         if (api.keys.isCancel(event)) {
             if (!topBar.isFocused && topBarVisible) {
                 topBar.isFocused = true;

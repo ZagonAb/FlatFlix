@@ -767,6 +767,37 @@ Item {
         }
     }
 
+    function increaseVolume() {
+        if (!gameData || !gameData.assets || !gameData.assets.video) return false;
+        if (videoPlayer.playbackState !== MediaPlayer.PlayingState) return false;
+
+        var currentVolume = videoPlayer.volume;
+        var newVolume = Math.min(1.0, currentVolume + 0.1);
+        videoPlayer.volume = newVolume;
+        saveVolume(newVolume);
+        return true;
+    }
+
+    function decreaseVolume() {
+        if (!gameData || !gameData.assets || !gameData.assets.video) return false;
+        if (videoPlayer.playbackState !== MediaPlayer.PlayingState) return false;
+
+        var currentVolume = videoPlayer.volume;
+        var newVolume = Math.max(0.0, currentVolume - 0.1);
+        videoPlayer.volume = newVolume;
+        saveVolume(newVolume);
+        return true;
+    }
+
+    function getCurrentVolume() {
+        return videoPlayer.volume;
+    }
+
+    function isVideoPlaying() {
+        return videoPlayer.playbackState === MediaPlayer.PlayingState &&
+        gameData && gameData.assets && gameData.assets.video;
+    }
+
     Component.onDestruction: {
         videoStartTimer.stop();
         videoPlayer.stop();
