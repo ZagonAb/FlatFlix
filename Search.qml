@@ -919,9 +919,9 @@ FocusScope {
         }
 
         results.sort(function(a, b) {
-            var playersA = a.players || 1;
-            var playersB = b.players || 1;
-            return playersA - playersB;
+            var ratingA = a.rating || 0.0;
+            var ratingB = b.rating || 0.0;
+            return ratingB - ratingA;
         });
 
         filteredGames = results
