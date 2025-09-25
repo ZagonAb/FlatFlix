@@ -545,22 +545,111 @@ FocusScope {
 
         var results = []
         var searchLower = searchText.toLowerCase()
+        var searchWords = searchLower.split(/\s+/).filter(function(word) { return word.length > 0; })
         showingAllGames = false;
 
         for (var i = 0; i < api.allGames.count; i++) {
             var game = api.allGames.get(i)
             if (game) {
-                var titleMatch = game.title && game.title.toLowerCase().indexOf(searchLower) !== -1
-                var genreMatch = game.genre && game.genre.toLowerCase().indexOf(searchLower) !== -1
-                var developerMatch = game.developer && game.developer.toLowerCase().indexOf(searchLower) !== -1
-
-                if (titleMatch || genreMatch || developerMatch) {
-                    results.push(game)
+                var matchScore = calculateMatchScore(game, searchLower, searchWords);
+                if (matchScore > 0) {
+                    results.push({
+                        game: game,
+                        score: matchScore
+                    });
                 }
             }
         }
 
-        filteredGames = results
+        results.sort(function(a, b) {
+            if (a.score !== b.score) {
+                return b.score - a.score;
+            }
+            return (a.game.title || "").localeCompare(b.game.title || "");
+        });
+
+        filteredGames = results.map(function(result) { return result.game; });
+    }
+
+    function calculateMatchScore(game, searchLower, searchWords) {
+        var score = 0;
+        var title = (game.title || "").toLowerCase();
+        var developer = (game.developer || "").toLowerCase();
+        var publisher = (game.publisher || "").toLowerCase();
+        var genre = (game.genre || "").toLowerCase();
+        var description = (game.description || "").toLowerCase();
+
+        if (title === searchLower) {
+            score += 1000;
+        }
+
+        else if (title.indexOf(searchLower) === 0) {
+            score += 800;
+        }
+
+        else if (title.indexOf(searchLower) !== -1) {
+            score += 600;
+        }
+
+        for (var i = 0; i < searchWords.length; i++) {
+            var word = searchWords[i];
+            if (title.indexOf(word) !== -1) {
+                if (title.indexOf(word) === 0) {
+                    score += 400;
+                } else {
+                    score += 200;
+                }
+            }
+        }
+
+        if (developer.indexOf(searchLower) !== -1) {
+            score += 300;
+        }
+        for (var i = 0; i < searchWords.length; i++) {
+            if (developer.indexOf(searchWords[i]) !== -1) {
+                score += 150;
+            }
+        }
+
+        if (publisher.indexOf(searchLower) !== -1) {
+            score += 250;
+        }
+        for (var i = 0; i < searchWords.length; i++) {
+            if (publisher.indexOf(searchWords[i]) !== -1) {
+                score += 120;
+            }
+        }
+
+        if (genre.indexOf(searchLower) !== -1) {
+            score += 200;
+        }
+        for (var i = 0; i < searchWords.length; i++) {
+            if (genre.indexOf(searchWords[i]) !== -1) {
+                score += 100;
+            }
+        }
+
+        if (description.indexOf(searchLower) !== -1) {
+            score += 50;
+        }
+        for (var i = 0; i < searchWords.length; i++) {
+            if (description.indexOf(searchWords[i]) !== -1) {
+                score += 25;
+            }
+        }
+
+        var fieldsMatched = 0;
+        if (title.indexOf(searchLower) !== -1) fieldsMatched++;
+        if (developer.indexOf(searchLower) !== -1) fieldsMatched++;
+        if (publisher.indexOf(searchLower) !== -1) fieldsMatched++;
+        if (genre.indexOf(searchLower) !== -1) fieldsMatched++;
+        if (description.indexOf(searchLower) !== -1) fieldsMatched++;
+
+        if (fieldsMatched > 1) {
+            score += fieldsMatched * 50;
+        }
+
+        return score;
     }
 
     function searchByGenre(genre) {
