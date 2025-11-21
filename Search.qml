@@ -461,6 +461,52 @@ FocusScope {
                             radius: 8
                         }
 
+                        Item {
+                            anchors {
+                                right: parent.right
+                                bottom: parent.bottom
+                                rightMargin: parent.width * 0.04
+                                bottomMargin: parent.height * 0.04
+                            }
+                            width: playersContainer.width
+                            height: playersContainer.height
+                            visible: showingMultiplayerFilter && modelData && (modelData.players || 1) > 1
+
+                            Rectangle {
+                                id: playersContainer
+                                width: playersIcon.width + playersText.width + parent.parent.width * 0.08
+                                height: parent.parent.height * 0.10
+                                color: "#CC000000"
+                                radius: height / 2
+
+                                Row {
+                                    anchors.centerIn: parent
+                                    spacing: parent.parent.width * 0.02
+
+                                    Image {
+                                        id: playersIcon
+                                        width: parent.parent.parent.parent.width * 0.08
+                                        height: parent.parent.parent.parent.width * 0.08
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        source: "assets/icons/players.svg"
+                                        fillMode: Image.PreserveAspectFit
+                                        sourceSize.width: width
+                                        sourceSize.height: height
+                                    }
+
+                                    Text {
+                                        id: playersText
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: modelData ? (modelData.players || 1) : "1"
+                                        font.family: global.fonts.sans
+                                        font.pixelSize: parent.parent.parent.parent.height * 0.06
+                                        font.bold: true
+                                        color: "white"
+                                    }
+                                }
+                            }
+                        }
+
                         onGameSelected: {
                             if (gameData) {
                                 selectedResultIndex = index
