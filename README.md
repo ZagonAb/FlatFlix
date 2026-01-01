@@ -14,7 +14,7 @@
 
 ## Installation
 
-[Download]() and extract the theme to your [theme directory](http://pegasus-frontend.org/docs/user-guide/installing-themes). You can then select it from the Pegasus settings menu.
+[Download](https://github.com/ZagonAb/FlatFlix) and extract the theme to your [theme directory](http://pegasus-frontend.org/docs/user-guide/installing-themes). You can then select it from the Pegasus settings menu.
 
 ## 📜 License
 
