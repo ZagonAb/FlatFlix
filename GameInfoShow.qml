@@ -6,6 +6,7 @@
 import QtQuick 2.15
 import QtGraphicalEffects 1.12
 import QtQuick.Layouts 1.12
+import QtMultimedia 5.12
 import "utils.js" as Utils
 import "qrc:/qmlutils" as PegasusUtils
 
@@ -23,6 +24,24 @@ FocusScope {
     property bool isTogglingFavorite: false
     property int currentButtonIndex: 0
     property bool isLaunching: false
+
+    property bool continueVideoEnabled: false
+    property real continueVideoPosition: 0
+    property real continueVideoVolume: 0.25
+    property real lastVideoPosition: 0
+
+    function getVideoPosition() {
+        return lastVideoPosition;
+    }
+
+    readonly property bool crtToggleLocked: infoVideoPlayer.opacity > 0
+
+    onCrtToggleLockedChanged: {
+        if (crtToggleLocked && shaderButton.activeFocus) {
+            currentButtonIndex = 0;
+            launchButton.forceActiveFocus();
+        }
+    }
 
     opacity: showing ? 1.0 : 0.0
     visible: opacity > 0
@@ -53,7 +72,9 @@ FocusScope {
     }
 
     function close() {
-        //console.log("GameInfoShow: Closing, isLaunching:", isLaunching, "sourceContext:", sourceContext);
+        if (infoVideoPlayer.playbackState === MediaPlayer.PlayingState) {
+            volumeFadeAnimation.restart();
+        }
 
         showing = false;
 
@@ -68,16 +89,26 @@ FocusScope {
         closeTimer.start();
 
         if (typeof parent !== 'undefined' && parent && typeof parent.gameInfoClosed === 'function' && !isLaunching) {
-            //console.log("GameInfoShow: Calling parent.gameInfoClosed for context:", sourceContext);
             parent.gameInfoClosed();
         }
     }
 
+    NumberAnimation {
+        id: volumeFadeAnimation
+        target: infoVideoPlayer
+        property: "volume"
+        to: 0.0
+        duration: 400
+        easing.type: Easing.OutQuad
+    }
+
     function navigateButtons(direction) {
+        var total = crtToggleLocked ? 2 : 3;
+
         if (direction === "down") {
-            currentButtonIndex = (currentButtonIndex + 1) % 3;
+            currentButtonIndex = (currentButtonIndex + 1) % total;
         } else if (direction === "up") {
-            currentButtonIndex = (currentButtonIndex - 1 + 3) % 3;
+            currentButtonIndex = (currentButtonIndex - 1 + total) % total;
         }
 
         if (currentButtonIndex === 0) {
@@ -100,8 +131,6 @@ FocusScope {
         id: closeTimer
         interval: 300
         onTriggered: {
-            //console.log("GameInfoShow: Close timer triggered");
-
             if (typeof parent !== 'undefined' && parent && typeof parent.gameInfoClosed === 'function' && !isLaunching) {
                 parent.gameInfoClosed();
             }
@@ -229,6 +258,85 @@ FocusScope {
             }
         }
 
+        Video {
+            id: infoVideoPlayer
+            anchors.fill: parent
+            fillMode: VideoOutput.PreserveAspectCrop
+            autoPlay: false
+            loops: 1
+            muted: false
+            opacity: 0.0
+            visible: opacity > 0
+
+            Behavior on opacity {
+                NumberAnimation { duration: 500; easing.type: Easing.InOutQuad }
+            }
+
+            onStatusChanged: {
+                if (status === MediaPlayer.Loaded) {
+                    if (continueVideoPosition > 0) {
+                        infoVideoPlayer.seek(continueVideoPosition);
+                    }
+                    infoVideoPlayer.play();
+                    infoVideoPlayer.opacity = 1.0;
+                }
+            }
+
+            onStopped: {
+                infoVideoPlayer.opacity = 0.0;
+            }
+
+            onErrorChanged: {
+                if (error !== MediaPlayer.NoError) {
+                    infoVideoPlayer.opacity = 0.0;
+                }
+            }
+        }
+
+        Connections {
+            target: gameInfoShow
+            function onShowingChanged() {
+                if (gameInfoShow.showing) {
+                    videoReleaseTimer.stop();
+                    if (continueVideoEnabled && gameData && gameData.assets && gameData.assets.video) {
+                        infoVideoPlayer.volume = continueVideoVolume;
+                        videoStartDelayTimer.restart();
+                    } else {
+                        infoVideoPlayer.opacity = 0.0;
+                        infoVideoPlayer.stop();
+                        infoVideoPlayer.source = "";
+                    }
+                } else {
+                    lastVideoPosition = infoVideoPlayer.position || 0;
+                    videoStartDelayTimer.stop();
+                    infoVideoPlayer.opacity = 0.0;
+                    videoReleaseTimer.restart();
+                }
+            }
+        }
+
+        Timer {
+            id: videoStartDelayTimer
+            interval: 300
+            repeat: false
+            onTriggered: {
+                if (gameInfoShow.showing && continueVideoEnabled &&
+                    gameData && gameData.assets && gameData.assets.video) {
+                    infoVideoPlayer.source = gameData.assets.video;
+                    }
+            }
+        }
+
+        Timer {
+            id: videoReleaseTimer
+            interval: 420
+            repeat: false
+            onTriggered: {
+                infoVideoPlayer.stop();
+                infoVideoPlayer.source = "";
+            }
+        }
+
         Rectangle {
             anchors {
                 left: parent.left
@@ -268,10 +376,10 @@ FocusScope {
         ColumnLayout {
             anchors {
                 fill: parent
-                margins: 40
-                topMargin: 60
+                margins: Style.marginPage
+                topMargin: Math.round(60 * Style.scale)
             }
-            spacing: 5
+            spacing: Style.spacingTiny
 
             Image {
                 id: gameLogo
@@ -430,12 +538,12 @@ FocusScope {
 
             RowLayout {
                 Layout.alignment: Qt.AlignLeft
-                spacing: 30
+                spacing: Style.spacingXXLarge
                 visible: (gameData && gameData.developer) || (gameData && gameData.publisher)
 
                 Column {
                     visible: gameData && gameData.developer
-                    spacing: 5
+                    spacing: Style.spacingTiny
 
                     Text {
                         text: "Developer"
@@ -454,7 +562,7 @@ FocusScope {
 
                 Column {
                     visible: gameData && gameData.publisher
-                    spacing: 5
+                    spacing: Style.spacingTiny
 
                     Text {
                         text: "Publisher"
@@ -474,7 +582,7 @@ FocusScope {
                 Flow {
                     Layout.fillWidth: true
                     Layout.preferredHeight: childrenRect.height
-                    spacing: 10
+                    spacing: Style.spacingMedium
                     visible: gameData
 
                     Repeater {
@@ -483,7 +591,6 @@ FocusScope {
                                 try {
                                     return Utils.getGameBadges(gameData);
                                 } catch (e) {
-                                    console.log("Error getting badges:", e);
                                     return [];
                                 }
                             }
@@ -491,9 +598,9 @@ FocusScope {
                         }
 
                         delegate: Rectangle {
-                            width: badgeRow.width + 30
+                            width: badgeRow.width + Style.spacingXXLarge
                             height: gameInfoShow.height * 0.05
-                            radius: 25
+                            radius: Style.radiusLarge
                             color: {
                                 switch(modelData.level) {
                                     case "platinum": return "#CCE5E4E2";
@@ -507,7 +614,7 @@ FocusScope {
                             Row {
                                 id: badgeRow
                                 anchors.centerIn: parent
-                                spacing: 5
+                                spacing: Style.spacingTiny
 
                                 Image {
                                     source: modelData.icon
@@ -539,7 +646,7 @@ FocusScope {
             ColumnLayout {
                 id: buttonsColumn
                 Layout.alignment: Qt.AlignLeft
-                spacing: 15
+                spacing: Style.spacingLarge
                 focus: true
 
                 Rectangle {
@@ -547,7 +654,7 @@ FocusScope {
                     Layout.preferredWidth: gameInfoShow.width * 0.35
                     Layout.preferredHeight: gameInfoShow.height * 0.065
                     color: launchButton.activeFocus ? "#ffffff" : "transparent"
-                    radius: 25
+                    radius: Style.radiusLarge
 
                     Row {
                         anchors {
@@ -626,7 +733,7 @@ FocusScope {
                     Layout.preferredWidth: gameInfoShow.width * 0.35
                     Layout.preferredHeight: gameInfoShow.height * 0.065
                     color: favoriteButton.activeFocus ? "#ffffff" : "transparent"
-                    radius: 25
+                    radius: Style.radiusLarge
 
                     Row {
                         anchors {
@@ -682,7 +789,12 @@ FocusScope {
                     Layout.preferredWidth: gameInfoShow.width * 0.35
                     Layout.preferredHeight: gameInfoShow.height * 0.065
                     color: shaderButton.activeFocus ? "#ffffff" : "transparent"
-                    radius: 25
+                    radius: Style.radiusLarge
+                    opacity: crtToggleLocked ? 0.4 : 1.0
+
+                    Behavior on opacity {
+                        NumberAnimation { duration: 200 }
+                    }
 
                     Row {
                         anchors {
@@ -716,6 +828,7 @@ FocusScope {
 
                     MouseArea {
                         anchors.fill: parent
+                        enabled: !crtToggleLocked
                         onClicked: toggleCrtEffect()
                     }
                 }
@@ -745,7 +858,6 @@ FocusScope {
                                showSeparator: gameData.releaseYear > 0 || gameData.players > 1 || gameData.rating > 0
                     });
                 } catch (e) {
-                    console.log("Error calculating XP:", e);
                 }
             }
 
@@ -781,6 +893,7 @@ FocusScope {
     }
 
     function toggleCrtEffect() {
+        if (crtToggleLocked) return;
         crtEffectEnabled = !crtEffectEnabled;
         api.memory.set("crtEffectEnabled", crtEffectEnabled);
     }
@@ -821,3 +934,4 @@ FocusScope {
         }
     }
 }
+

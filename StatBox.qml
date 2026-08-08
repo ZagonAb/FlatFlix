@@ -9,10 +9,10 @@ Rectangle {
     id: statBox
     width: parent.width
     height: parent.height
-    radius: 10
+    radius: Style.radiusMedium
     color: "#1a1a1a"
     border.color: "#333333"
-    border.width: 1
+    border.width: Style.borderThin
 
     property string title: ""
     property variant value: ""
@@ -91,5 +91,3 @@ Rectangle {
         }
     }
 }
-
-

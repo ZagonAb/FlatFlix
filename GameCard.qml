@@ -21,29 +21,32 @@ Item {
     property bool wasPlayingBeforeFocusLoss: false
     property bool gameInfoActive: false
     property bool pauseRequested: false
+    property string collectionShortName: ""
+    property int selectionBorderWidth: Style.borderThick
+    property string _dbgTag: "gc-" + Math.floor(Math.random() * 100000)
 
     signal gameSelected()
 
     Rectangle {
         anchors.fill: parent
         color: "#121212"
-        radius: 10
-        border.width: isCurrentItem && !compactMode && !topBarFocused ? 3 : 0
+        radius: 0
+        border.width: isCurrentItem && !compactMode && !topBarFocused ? selectionBorderWidth : 0
         border.color: "white"
 
         Rectangle {
             id: emptyCardRect
             anchors.fill: parent
-            anchors.margins: isCurrentItem && !compactMode ? 3 : 0
+            anchors.margins: isCurrentItem && !compactMode ? selectionBorderWidth : 0
             color: emptyCardColor
-            radius: 10
+            radius: 0
             visible: showEmptyCard
         }
 
         Item {
             id: imageContainer
             anchors.fill: parent
-            anchors.margins: isCurrentItem && !compactMode ? 3 : 0
+            anchors.margins: isCurrentItem && !compactMode ? selectionBorderWidth : 0
             visible: !showEmptyCard
 
             Image {
@@ -89,7 +92,7 @@ Item {
                 id: videoPlayer
                 anchors.fill: parent
                 source: gameData && gameData.assets.video ? gameData.assets.video : ""
-                fillMode: VideoOutput.Stretch
+                fillMode: VideoOutput.PreserveAspectCrop
                 autoPlay: false
                 loops: 1
                 muted: false
@@ -102,7 +105,12 @@ Item {
                 }
 
                 onStatusChanged: {
+                    if (status === MediaPlayer.Loaded && pendingSeekPosition >= 0) {
+                        videoPlayer.seek(pendingSeekPosition);
+                        pendingSeekPosition = -1;
+                    }
                     if (status === MediaPlayer.Loaded && isCurrentItem && !compactMode) {
+                        videoPlayer.visible = true;
                         videoPlayer.opacity = 1.0;
                         screenshot.opacity = 0.0;
                         volumeControlContainer.opacity = 1.0;
@@ -140,7 +148,7 @@ Item {
             Rectangle {
                 id: imageMask
                 anchors.fill: parent
-                radius: 10
+                radius: 0
                 visible: false
             }
 
@@ -149,24 +157,6 @@ Item {
                 source: screenshot
                 maskSource: imageMask
                 opacity: screenshot.opacity
-            }
-
-            Rectangle {
-                anchors.fill: parent
-                color: "#141414"
-                radius: 10
-                visible: screenshot.status !== Image.Ready && !videoPlayer.visible
-
-                Text {
-                    anchors.centerIn: parent
-                    text: gameData ? gameData.title : ""
-                    font.family: global.fonts.sans
-                    font.pixelSize: 12
-                    color: "white"
-                    wrapMode: Text.WordWrap
-                    horizontalAlignment: Text.AlignHCenter
-                    width: parent.width - 10
-                }
             }
 
             Rectangle {
@@ -216,7 +206,7 @@ Item {
                         bottom: parent.bottom
                         bottomMargin: gameCard.height * 0.08
                     }
-                    width: Math.max(2, gameCard.width * 0.008)
+                    width: Math.max(Math.round(2 * Style.scale), gameCard.width * 0.008)
                     color: "#80ffffff"
                     radius: width / 2
 
@@ -254,12 +244,12 @@ Item {
                         horizontalCenter: volumeBarBackground.horizontalCenter
                     }
                     y: volumeBarBackground.y + volumeBarBackground.height * (1 - (videoPlayer.volume || 0)) - height/2
-                    width: Math.max(10, gameCard.width * 0.03)
+                    width: Math.max(Math.round(10 * Style.scale), gameCard.width * 0.03)
                     height: width
                     color: "#ff0000"
                     radius: width / 2
                     border.color: "#ff0000"
-                    border.width: Math.max(1, gameCard.width * 0.002)
+                    border.width: Math.max(Style.borderThin, gameCard.width * 0.002)
 
                     Behavior on y {
                         NumberAnimation { duration: 100 }
@@ -268,7 +258,7 @@ Item {
                     MouseArea {
                         id: volumeMouseArea
                         anchors.fill: parent
-                        anchors.margins: -Math.max(4, gameCard.width * 0.02)
+                        anchors.margins: -Math.max(Math.round(4 * Style.scale), gameCard.width * 0.02)
 
                         property bool isDragging: false
                         property real startY: 0
@@ -298,63 +288,6 @@ Item {
                         }
                     }
                 }
-
-                Item {
-                    anchors {
-                        horizontalCenter: parent.horizontalCenter
-                        top: parent.top
-                    }
-                    width: Math.max(16, gameCard.width * 0.05)
-                    height: width
-
-                    Image {
-                        id: volumeUpIcon
-                        anchors.centerIn: parent
-                        width: Math.max(12, gameCard.width * 0.03)
-                        height: width
-                        source: "assets/icons/volume.png"
-                        fillMode: Image.PreserveAspectFit
-                        visible: status === Image.Ready
-                        mipmap: true
-                    }
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "ðŸ”Š"
-                        font.pixelSize: Math.max(12, gameCard.width * 0.04)
-                        color: "#ffffff"
-                        visible: volumeUpIcon.status !== Image.Ready
-                    }
-                }
-
-                Item {
-                    anchors {
-                        horizontalCenter: parent.horizontalCenter
-                        bottom: parent.bottom
-                    }
-                    width: Math.max(14, gameCard.width * 0.045)
-                    height: width
-
-                    Image {
-                        id: muteIcon
-                        anchors.centerIn: parent
-                        width: Math.max(10, gameCard.width * 0.03)
-                        height: width
-                        source: "assets/icons/mute.png"
-                        fillMode: Image.PreserveAspectFit
-                        visible: status === Image.Ready
-                        mipmap: true
-                    }
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "ðŸ”‡"
-                        font.pixelSize: Math.max(10, gameCard.width * 0.035)
-                        color: "#ffffff"
-                        opacity: 0.7
-                        visible: muteIcon.status !== Image.Ready
-                    }
-                }
             }
 
             Item {
@@ -362,7 +295,7 @@ Item {
                 anchors {
                     bottom: imageContainer.bottom
                     right: imageContainer.right
-                    bottomMargin: gameCard.height * 0.07
+                    bottomMargin: gameCard.height * 0.05
                     rightMargin: gameCard.width * 0.02
                 }
                 height: Math.max(gameCard.height * 0.06, gameCard.height * 0.08)
@@ -415,7 +348,7 @@ Item {
                                 id: infoRow
                                 anchors.centerIn: parent
                                 spacing: gameCard.width * 0.012
-                                padding: gameCard.width * 0.012
+                                padding: gameCard.width * 0.008
 
                                 Image {
                                     source: modelData.icon
@@ -428,7 +361,7 @@ Item {
                                 Text {
                                     text: modelData.value
                                     font.family: global.fonts.sans
-                                    font.pixelSize: Math.max(gameCard.width * 0.018, gameCard.height * 0.025)
+                                    font.pixelSize: Math.max(gameCard.width * 0.025, gameCard.height * 0.032)
                                     color: "white"
                                     anchors.verticalCenter: parent.verticalCenter
                                     maximumLineCount: 1
@@ -443,7 +376,9 @@ Item {
 
         Image {
             id: compactLogo
-            anchors.centerIn: parent
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: parent.height * 0.25
             width: Math.min(parent.width * 0.8, parent.height * 0.5)
             height: width * 0.6
             source: gameData && gameData.assets.logo ? gameData.assets.logo : ""
@@ -459,11 +394,11 @@ Item {
                 left: parent.left
                 right: parent.right
                 bottom: parent.bottom
-                leftMargin: isCurrentItem && !compactMode ? 3 : 0
-                rightMargin: isCurrentItem && !compactMode ? 3 : 0
-                bottomMargin: isCurrentItem && !compactMode ? 3 : 0
+                leftMargin: isCurrentItem && !compactMode ? selectionBorderWidth : 0
+                rightMargin: isCurrentItem && !compactMode ? selectionBorderWidth : 0
+                bottomMargin: isCurrentItem && !compactMode ? selectionBorderWidth : 0
             }
-            height: showNetflixInfo ? 60 : 0
+            height: showNetflixInfo ? Math.round(60 * Style.scale) : 0
             visible: showNetflixInfo && !showEmptyCard
             opacity: showNetflixInfo ? 1.0 : 0.0
 
@@ -478,9 +413,9 @@ Item {
                 id: selectedGameLogo
                 anchors {
                     left: parent.left
-                    leftMargin: 10
+                    leftMargin: Style.spacingMedium
                     bottom: parent.verticalCenter
-                    bottomMargin: -20
+                    bottomMargin: -Math.round(20 * Style.scale)
                 }
                 width: gameCard.width * 0.3
                 height: gameCard.height * 0.3
@@ -506,13 +441,13 @@ Item {
                 id: gameTitle
                 anchors {
                     left: parent.left
-                    leftMargin: 10
+                    leftMargin: Style.spacingMedium
                     bottom: parent.verticalCenter
-                    bottomMargin: 2
+                    bottomMargin: Math.round(2 * Style.scale)
                 }
                 text: gameData ? gameData.title : ""
                 font.family: global.fonts.sans
-                font.pixelSize: 16
+                font.pixelSize: Style.fontSizeMedium
                 font.bold: true
                 color: "white"
                 width: parent.width - 20
@@ -527,6 +462,42 @@ Item {
             height: parent.height * 0.5
             enabled: !showEmptyCard
         }
+
+        Rectangle {
+            id: playTimeIndicator
+            anchors {
+                bottom: parent.bottom
+                left: parent.left
+                right: parent.right
+                bottomMargin: isCurrentItem && !compactMode && !topBarFocused ? selectionBorderWidth : 0
+                leftMargin: isCurrentItem && !compactMode && !topBarFocused ? selectionBorderWidth : 0
+                rightMargin: isCurrentItem && !compactMode && !topBarFocused ? selectionBorderWidth : 0
+            }
+            height: Math.round(gameCard.height * 0.030)
+            radius: 0
+            visible: !showEmptyCard && gameData && gameData.playTime > 0
+            && collectionShortName === "history"
+            color: "#80ffffff"
+
+            Rectangle {
+                id: progressBar
+                property real hours: gameData ? gameData.playTime / 3600 : 0
+                property real k: 100
+                property real progress: hours > 0 ? Math.log(1 + hours) / Math.log(1 + hours + k) : 0
+
+                width: parent.width * progress
+                height: parent.height
+                radius: 0
+
+                color: {
+                    let t = Math.min(1, hours / 200);
+                    let r = Math.floor(76 + t * (255 - 76));
+                    let g = Math.floor(175 - t * 175);
+                    let b = Math.floor(80 - t * 80);
+                    return Qt.rgba(r/255, g/255, b/255, 1);
+                }
+            }
+        }
     }
 
     Timer {
@@ -537,10 +508,7 @@ Item {
 
         onTriggered: {
             if (gameData && gameData.assets.video && isCurrentItem && !compactMode && !topBarFocused && !gameInfoActive) {
-                //console.log("GameCard: Starting video after timer");
                 videoPlayer.source = gameData.assets.video;
-            } else {
-                //console.log("GameCard: Skipping video start - gameInfoActive:", gameInfoActive);
             }
         }
     }
@@ -565,28 +533,64 @@ Item {
         running: false
         repeat: false
         onTriggered: {
-            if (videoPlayer.status === MediaPlayer.Loaded || videoPlayer.status === MediaPlayer.Buffered) {
-                videoPlayer.play();
-                isPlaying = true;
-                wasPlayingBeforeFocusLoss = false;
-            } else if (videoPlayer.status === MediaPlayer.Stalled || videoPlayer.status === MediaPlayer.Buffering) {
-                resumeTimer.restart();
+            if (!gameData || !gameData.assets || !gameData.assets.video) return;
+
+            var targetVolume = getStoredVolume();
+
+            videoPlayer.visible = true;
+            videoPlayer.volume = 0.0;
+            videoPlayer.play();
+            isPlaying = true;
+            wasPlayingBeforeFocusLoss = false;
+
+            if (pendingHandoffPosition >= 0) {
+                videoPlayer.seek(pendingHandoffPosition);
+                pendingHandoffPosition = -1;
             }
+
+            videoPlayer.opacity = 1.0;
+            screenshot.opacity = 0.0;
+
+            volumeControlContainer.visible = true;
+            volumeControlContainer.opacity = 1.0;
+            volumeRestoreAnimation.to = targetVolume;
+            volumeRestoreAnimation.restart();
         }
     }
 
-    onGameDataChanged: {
-        handleGameChange();
+    NumberAnimation {
+        id: volumeRestoreAnimation
+        target: videoPlayer
+        property: "volume"
+        from: 0.0
+        to: 0.25
+        duration: 500
+        easing.type: Easing.InOutQuad
     }
 
-    onIsCurrentItemChanged: {
-        handleGameChange();
+    readonly property bool shouldPlay: isCurrentItem && !compactMode && !showEmptyCard && !topBarFocused && !gameInfoActive
 
-        if (isCurrentItem && !compactMode && !showEmptyCard && !topBarFocused) {
+    function isPlaybackAllowedByContext() {
+        if (typeof root !== 'undefined' && root && root.searchVisible !== undefined) {
+            return !root.searchVisible;
+        }
+        return true;
+    }
+
+    function applyPlaybackIntent() {
+        if (shouldPlay && isPlaybackAllowedByContext()) {
             resumeVideo();
         } else {
             pauseVideo();
         }
+    }
+
+    onShouldPlayChanged: {
+        applyPlaybackIntent();
+    }
+
+    onGameDataChanged: {
+        handleGameChange();
     }
 
     onCompactModeChanged: {
@@ -594,35 +598,14 @@ Item {
     }
 
     onTopBarFocusedChanged: {
-        var cardId = (gameData && gameData.title) ? gameData.title.substring(0, 10) : "Unknown";
-        //console.log("GameCard [" + cardId + "]: topBarFocused changed to", topBarFocused, "isCurrentItem:", isCurrentItem);
-
         if (!isCurrentItem) return;
 
         if (topBarFocused) {
-            pauseVideo();
-            videoPlayer.source = "";
-            screenshot.opacity = 1.0;
-            wasPlayingBeforeFocusLoss = false;
-        } else if (!compactMode && !showEmptyCard) {
-            var isInSearchSection = false;
-            if (typeof root !== 'undefined' && root && root.searchVisible !== undefined) {
-                isInSearchSection = root.searchVisible;
-            }
-
-            if (!isInSearchSection) {
-                handleGameChange();
-                resumeVideo();
-            }
-        }
-    }
-
-    onGameInfoActiveChanged: {
-        var cardId = (gameData && gameData.title) ? gameData.title.substring(0, 10) : "Unknown";
-        //console.log("GameCard [" + cardId + "]: gameInfoActive changed to", gameInfoActive, "isCurrentItem:", isCurrentItem);
-
-        if (gameInfoActive && isCurrentItem) {
-            pauseVideo();
+            Qt.callLater(function() {
+                videoPlayer.source = "";
+                screenshot.opacity = 1.0;
+                wasPlayingBeforeFocusLoss = false;
+            });
         }
     }
 
@@ -636,26 +619,19 @@ Item {
         volumeControlContainer.visible = false;
         gameInfoContainer.opacity = 0.0;
         selectedGameLogo.opacity = 0.0;
+        wasPlayingBeforeFocusLoss = false;
+        pendingSeekPosition = -1;
 
         videoPlayer.source = "";
 
-        if (isCurrentItem && !compactMode && !showEmptyCard && !topBarFocused && !gameInfoActive) {
-            screenshot.opacity = 1.0;
+        if (isCurrentItem && !compactMode && !showEmptyCard) {
             infoRestoreTimer.start();
+        }
 
-            if (gameData && gameData.assets.video) {
-                //console.log("GameCard: Starting video timer in handleGameChange");
-                videoStartTimer.start();
-            }
-        } else {
-            screenshot.opacity = 1.0;
-            if (isCurrentItem && !compactMode && !showEmptyCard) {
-                infoRestoreTimer.start();
-            }
+        if (shouldPlay && isPlaybackAllowedByContext() && gameData && gameData.assets.video) {
+            videoStartTimer.start();
         }
     }
-
-
 
     function saveVolume(volume) {
         if (typeof api !== 'undefined' && api.memory) {
@@ -687,27 +663,15 @@ Item {
             isPlaying = true;
         }
     }
-    function pauseVideo() {
-        var cardId = (gameData && gameData.title) ? gameData.title.substring(0, 10) : "Unknown";
 
+    function pauseVideo() {
         if (pauseRequested) {
-            //console.log("GameCard [" + cardId + "]: pauseVideo already requested, skipping");
             return;
         }
 
         pauseRequested = true;
 
-        /*console.log("GameCard [" + cardId + "]: pauseVideo called", {
-            playbackState: videoPlayer.playbackState,
-            source: videoPlayer.source !== "",
-            gameInfoActive: gameInfoActive,
-            isCurrentItem: isCurrentItem,
-            compactMode: compactMode,
-            topBarFocused: topBarFocused
-        });*/
-
         if (!isCurrentItem && videoPlayer.playbackState !== MediaPlayer.PlayingState) {
-            //console.log("GameCard [" + cardId + "]: Not current item and no video playing, skipping");
             pauseRequested = false;
             return;
         }
@@ -715,15 +679,17 @@ Item {
         videoStartTimer.stop();
 
         if (videoPlayer.playbackState === MediaPlayer.PlayingState) {
-            //console.log("GameCard [" + cardId + "]: Pausing active video");
             videoPlayer.pause();
             isPlaying = false;
             wasPlayingBeforeFocusLoss = true;
-        } else if (videoPlayer.source !== "" && videoPlayer.status === MediaPlayer.Loaded) {
-            //console.log("GameCard [" + cardId + "]: Video loaded but not playing, marking for resume");
+            if (gameInfoActive) {
+                videoPlayer.opacity = 0.0;
+                screenshot.opacity = 1.0;
+                volumeControlContainer.opacity = 0.0;
+            }
+        } else if (videoPlayer.source.toString() !== "" && videoPlayer.status === MediaPlayer.Loaded) {
             wasPlayingBeforeFocusLoss = true;
-        } else if (videoStartTimer.running || (gameData && gameData.assets.video && videoPlayer.source === "")) {
-            //console.log("GameCard [" + cardId + "]: Video was about to start, marking as should resume");
+        } else if (videoStartTimer.running || (gameData && gameData.assets.video && videoPlayer.source.toString() === "")) {
             wasPlayingBeforeFocusLoss = true;
         }
 
@@ -733,18 +699,7 @@ Item {
     }
 
     function resumeVideo() {
-        /*console.log("GameCard: Attempting to resume video", {
-            wasPlayingBeforeFocusLoss: wasPlayingBeforeFocusLoss,
-            isCurrentItem: isCurrentItem,
-            compactMode: compactMode,
-            showEmptyCard: showEmptyCard,
-            topBarFocused: topBarFocused,
-            hasVideoSource: videoPlayer.source !== "",
-            videoStatus: videoPlayer.status
-        });*/
-
         if (!isCurrentItem) {
-            //console.log("GameCard: Not current item, skipping resume");
             return;
         }
 
@@ -756,10 +711,8 @@ Item {
 
             if (!isInSearchSection) {
                 if (wasPlayingBeforeFocusLoss) {
-                    //console.log("GameCard: Resuming video that was playing before");
                     resumeTimer.start();
-                } else if (gameData && gameData.assets.video && videoPlayer.source === "") {
-                    //console.log("GameCard: Starting video from beginning");
+                } else if (gameData && gameData.assets.video && videoPlayer.source.toString() === "") {
                     videoPlayer.source = gameData.assets.video;
                     videoStartTimer.start();
                 }
@@ -798,6 +751,22 @@ Item {
         gameData && gameData.assets && gameData.assets.video;
     }
 
+    function getVideoPosition() {
+        return videoPlayer.position || 0;
+    }
+
+    function seekVideo(positionMs) {
+        if (videoPlayer.source.toString() === "" || positionMs === undefined || positionMs === null) return;
+        if (videoPlayer.status === MediaPlayer.Loaded || videoPlayer.status === MediaPlayer.Buffered) {
+            videoPlayer.seek(positionMs);
+        } else {
+            pendingSeekPosition = positionMs;
+        }
+    }
+
+    property real pendingSeekPosition: -1
+    property real pendingHandoffPosition: -1
+
     Component.onDestruction: {
         videoStartTimer.stop();
         videoPlayer.stop();
@@ -828,8 +797,8 @@ Item {
             }
 
             delegate: Item {
-                width: 20
-                height: 20
+                width: Math.round(20 * Style.scale)
+                height: Math.round(20 * Style.scale)
 
                 Image {
                     width: gameCard.width * 0.04
@@ -838,58 +807,7 @@ Item {
                     fillMode: Image.PreserveAspectFit
                     mipmap: true
                 }
-
-                /*CustomToolTip {
-                    id: badgeTooltip
-                    text: modelData.name
-                    visible: mouseArea.containsMouse && !compactMode
-                }*/
             }
         }
     }
-
-    Rectangle {
-        id: playTimeIndicator
-        anchors {
-            bottom: parent.bottom
-            left: parent.left
-            right: parent.right
-            margins: 5
-        }
-        height: gameCard.width * 0.01
-        radius: 1.5
-        visible: !showEmptyCard && gameData && !compactMode && gameData.playTime > 0
-        color: "#40000000"
-
-        Rectangle {
-            id: progressBar
-            property real hours: gameData ? gameData.playTime / 3600 : 0
-            property real k: 100
-            property real progress: hours > 0 ? Math.log(1 + hours) / Math.log(1 + hours + k) : 0
-
-            width: parent.width * progress
-            height: parent.height
-            radius: parent.radius
-
-            color: {
-                let t = Math.min(1, hours / 200);
-                let r = Math.floor(76 + t * (255 - 76));
-                let g = Math.floor(175 - t * 175);
-                let b = Math.floor(80 - t * 80);
-                return Qt.rgba(r/255, g/255, b/255, 1);
-            }
-        }
-
-        /*CustomToolTip {
-            id: timeTooltip
-            text: {
-                if (!gameData) return "";
-                const hours = Math.floor(gameData.playTime / 3600);
-                const minutes = Math.floor((gameData.playTime % 3600) / 60);
-                return `Jugado: ${hours}h ${minutes}m • ${gameData.playCount} veces`;
-            }
-            visible: timeMouseArea.containsMouse && !compactMode
-        }*/
-    }
-
 }

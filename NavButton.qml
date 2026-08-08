@@ -12,12 +12,12 @@ Item {
         if (isIcon) {
             return height;
         } else if (text !== "") {
-            return textItem.contentWidth + (root ? root.width * 0.04 : 30);
+            return textItem.contentWidth + (root ? root.width * 0.04 : Math.round(30 * Style.scale));
         } else {
-            return (root ? root.height * 0.05 : 50);
+            return (root ? root.height * 0.05 : Math.round(50 * Style.scale));
         }
     }
-    height: root ? root.height * 0.07 : 60
+    height: root ? root.height * 0.07 : Math.round(60 * Style.scale)
 
     property string text: ""
     property bool isIcon: false

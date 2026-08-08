@@ -32,7 +32,7 @@ FocusScope {
     property real boxSpacing: parent.width * 0.01
     property real boxHeight: parent.height * 0.15
     property real sectionTitleSize: parent.height * 0.03
-    property real dividerHeight: 1
+    property real dividerHeight: Style.dividerHeight
     property var mostPlayedGames: []
     property var favoriteGames: []
     property var forgottenGames: []
@@ -185,7 +185,7 @@ FocusScope {
 
         ColumnLayout {
             id: contentLayout
-            width: parent.width - 40
+            width: parent.width - Style.marginPage
             anchors.horizontalCenter: parent.horizontalCenter
 
             spacing: sectionSpacing
@@ -499,10 +499,10 @@ FocusScope {
                         delegate: Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: width * 0.6
-                            radius: 10
+                            radius: Style.radiusMedium
                             color: "#1a1a1a"
                             border.color: "#333333"
-                            border.width: 1
+                            border.width: Style.borderThin
 
                             Column {
                                 anchors {
@@ -654,10 +654,10 @@ FocusScope {
                         delegate: Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: width * 0.6
-                            radius: 10
+                            radius: Style.radiusMedium
                             color: "#1a1a1a"
                             border.color: "#333333"
-                            border.width: 1
+                            border.width: Style.borderThin
 
                             Column {
                                 anchors {
@@ -737,7 +737,7 @@ FocusScope {
                 Text {
                     text: "FlatFlix information"
                     font.family: global.fonts.sans
-                    font.pixelSize: sectionTitleSize + 8
+                    font.pixelSize: sectionTitleSize + Math.round(8 * Style.scale)
                     font.bold: true
                     color: "white"
                 }
@@ -773,10 +773,10 @@ FocusScope {
                         delegate: Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: boxHeight * 0.6
-                            radius: 10
+                            radius: Style.radiusMedium
                             color: "#1a1a1a"
                             border.color: "#333333"
-                            border.width: 1
+                            border.width: Style.borderThin
 
                             Column {
                                 anchors {
@@ -845,15 +845,15 @@ FocusScope {
                     delegate: Rectangle {
                         width: parent.width
                         height: boxHeight * 0.6
-                        radius: 5
+                        radius: Math.round(5 * Style.scale)
                         color: "#1a1a1a"
                         border.color: "#333333"
-                        border.width: 1
+                        border.width: Style.borderThin
 
                         Row {
                             anchors.fill: parent
-                            anchors.margins: 10
-                            spacing: 10
+                            anchors.margins: Style.spacingMedium
+                            spacing: Style.spacingMedium
 
                             Text {
                                 text: (index + 1) + "."
@@ -906,15 +906,15 @@ FocusScope {
                     delegate: Rectangle {
                         width: parent.width
                         height: boxHeight * 0.6
-                        radius: 5
+                        radius: Math.round(5 * Style.scale)
                         color: "#1a1a1a"
                         border.color: "#333333"
-                        border.width: 1
+                        border.width: Style.borderThin
 
                         Row {
                             anchors.fill: parent
-                            anchors.margins: 10
-                            spacing: 10
+                            anchors.margins: Style.spacingMedium
+                            spacing: Style.spacingMedium
 
                             Text {
                                 text: (index + 1) + "."
@@ -991,17 +991,17 @@ FocusScope {
             right: parent.right
             top: flickableContent.top
             bottom: flickableContent.bottom
-            rightMargin: 5
+            rightMargin: Style.spacingTiny
         }
-        width: 4
+        width: Style.scrollbarWidth
         color: "#333333"
-        radius: 2
+        radius: Style.radiusSmall
         visible: flickableContent.contentHeight > flickableContent.height
 
         Rectangle {
             id: scrollThumb
             width: parent.width
-            height: Math.max(20, (flickableContent.height / flickableContent.contentHeight) * parent.height)
+            height: Math.max(Math.round(20 * Style.scale), (flickableContent.height / flickableContent.contentHeight) * parent.height)
             y: (flickableContent.contentY / flickableContent.contentHeight) * parent.height
             color: "#666666"
             radius: parent.radius

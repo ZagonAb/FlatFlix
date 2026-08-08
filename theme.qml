@@ -12,8 +12,17 @@ import "utils.js" as Utils
 FocusScope {
     id: root
 
-    property int currentCollectionIndex: 0
-    property int currentGameIndex: 0
+    // Single global scale source: recalculated any time the actual
+    // window/root size changes, not just on startup.
+    onWidthChanged: Style.updateScale(width, height)
+    onHeightChanged: Style.updateScale(width, height)
+
+    NavigationController {
+        id: nav
+        allCollections: root.allCollections
+    }
+    property alias currentCollectionIndex: nav.currentCollectionIndex
+    property alias currentGameIndex: nav.currentGameIndex
     property var allCollections: []
     property bool showAllCollections: topBar.currentSection === 1
     property bool showFavoritesOnly: topBar.currentSection === 2
@@ -21,7 +30,15 @@ FocusScope {
     property int savedGameIndex: 0
     property bool gameInfoVisible: false
     property bool topBarVisible: true
+    property bool gameVideoContinueEnabled: false
+    property real gameVideoContinuePosition: 0
+    property real gameVideoContinueVolume: 0.25
     property var savedFocusState: null
+    property var featuredGameData: null
+    property bool featuredBannerVisible: false
+    property bool featuredFocused: false
+    property int featuredButtonIndex: 0
+    property bool gameInfoFromFeatured: false
     property bool showSearch: topBar.currentSection === 0
     property bool searchVisible: topBar.currentSection === 0
     property bool isResettingAfterLaunch: false
@@ -54,6 +71,8 @@ FocusScope {
         if (newSection === 0) {
             searchVisible = true;
             topBarVisible = true;
+            featuredBannerVisible = false;
+            featuredFocused = false;
             if (selectedGame && typeof selectedGame.pauseVideo === "function" && selectedGame.isPlaying) {
                 selectedGame.pauseVideo();
                 selectedGame.wasPlayingBeforeFocusLoss = false;
@@ -66,33 +85,58 @@ FocusScope {
         } else {
             searchVisible = false;
             topBarVisible = true;
+            featuredBannerVisible = (newSection === 1) && (featuredGameData !== null);
+            featuredFocused = false;
         }
 
         updateCollectionsList();
     }
 
-    function showGameInfo() {
+    function showGameInfo(fromFeatured) {
         if (gameInfoVisible) return;
 
-        //console.log("Theme: Showing game info");
+        gameInfoFromFeatured = fromFeatured === true;
 
-        if (selectedGame) {
+        if (!gameInfoFromFeatured && selectedGame) {
+            gameVideoContinueEnabled = typeof selectedGame.isVideoPlaying === "function" && selectedGame.isVideoPlaying();
+            gameVideoContinuePosition = (gameVideoContinueEnabled && typeof selectedGame.getVideoPosition === "function")
+            ? selectedGame.getVideoPosition() : 0;
+            gameVideoContinueVolume = typeof selectedGame.getCurrentVolume === "function"
+            ? selectedGame.getCurrentVolume() : 0.25;
+
             selectedGame.gameInfoActive = true;
-            if (typeof selectedGame.pauseVideo === "function") {
-                selectedGame.pauseVideo();
-            }
+        } else {
+            gameVideoContinueEnabled = false;
         }
 
         savedFocusState = {
             collectionIndex: currentCollectionIndex,
             gameIndex: currentGameIndex,
             topBarFocused: false,
-            topBarVisible: topBarVisible
+            topBarVisible: topBarVisible,
+            featuredFocused: gameInfoFromFeatured
         };
 
         topBarVisible = false;
         themeOpacity = 0.3;
-        gameInfoVisible = true;
+
+        if (gameInfoFromFeatured) {
+            gameInfoVisible = true;
+        } else {
+            openGameInfoTimer.start();
+        }
+    }
+
+    Timer {
+        id: openGameInfoTimer
+        interval: 80
+        repeat: false
+        onTriggered: {
+            gameInfoVisible = true;
+            if (selectedGame && typeof selectedGame.pauseVideo === "function") {
+                selectedGame.pauseVideo();
+            }
+        }
     }
 
     function setTopBarVisible(visible) {
@@ -107,22 +151,23 @@ FocusScope {
     }
 
     function launchCurrentGame() {
-        var game = getCurrentGame();
+        var game = gameInfoFromFeatured && featuredGameData ? featuredGameData : getCurrentGame();
         if (game) {
             game.launch();
         }
     }
     function resetFocusAfterGameLaunch() {
-        //console.log("Theme: Resetting focus after game launch");
         isResettingAfterLaunch = true;
         gameInfoVisible = false;
+        gameInfoFromFeatured = false;
         themeOpacity = 1.0;
         topBarVisible = true;
         savedFocusState = null;
         previousFocusState = null;
         var preLaunchState = api.memory.get("preLaunchState");
+        var cameFromFeatured = preLaunchState && preLaunchState.wasFeatured === true;
+
         if (preLaunchState && preLaunchState.wasInGameInfo) {
-            //console.log("Theme: Detected launch from GameInfo, restoring main view");
 
             if (preLaunchState.collectionIndex !== undefined && preLaunchState.collectionIndex < allCollections.length) {
                 currentCollectionIndex = preLaunchState.collectionIndex;
@@ -138,15 +183,24 @@ FocusScope {
             }
 
             topBar.isFocused = false;
-
-            api.memory.set("preLaunchState", null);
-        } else {
+        } else if (!cameFromFeatured) {
             currentCollectionIndex = 0;
             currentGameIndex = 0;
         }
 
+        api.memory.set("preLaunchState", null);
+
         updateCollectionsList();
         forceActiveFocus();
+
+        if (cameFromFeatured && featuredGameData) {
+            featuredBannerVisible = true;
+            featuredFocused = true;
+            featuredButtonIndex = 0;
+            topBar.isFocused = false;
+        } else {
+            featuredFocused = false;
+        }
 
         if (selectedGame && typeof selectedGame.resumeVideo === "function") {
             selectedGame.resumeVideo();
@@ -160,6 +214,37 @@ FocusScope {
         if (game) {
             game.favorite = !game.favorite;
         }
+    }
+
+    function pickFeaturedGame() {
+        if (typeof api === 'undefined' || !api.allGames) return null;
+
+        var strictPool = [];
+        var relaxedPool = [];
+
+        for (var i = 0; i < api.allGames.count; i++) {
+            var game = api.allGames.get(i);
+            if (!game || !(game.rating > 0)) continue;
+
+            var playCount = game.playCount || 0;
+
+            if (game.rating >= 0.7 && playCount <= 0) {
+                strictPool.push(game);
+            } else if (game.rating >= 0.6 && playCount <= 2) {
+                relaxedPool.push(game);
+            }
+        }
+
+        var pool = strictPool.length > 0 ? strictPool : relaxedPool;
+        if (pool.length === 0) return null;
+
+        return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    function launchFeaturedGame() {
+        if (!featuredGameData) return;
+        api.memory.set("preLaunchState", { wasFeatured: true, wasInGameInfo: false });
+        featuredGameData.launch();
     }
 
     function createContinuePlayingCollection() {
@@ -282,12 +367,11 @@ FocusScope {
     }
 
     function getCurrentCollection() {
-        return currentCollectionIndex < allCollections.length ? allCollections[currentCollectionIndex] : null;
+        return nav.getCurrentCollection();
     }
 
     function getCurrentGame() {
-        var collection = getCurrentCollection();
-        return collection && currentGameIndex < collection.games.count ? collection.games.get(currentGameIndex) : null;
+        return nav.getCurrentGame();
     }
 
     function getShortDescription(gameData) {
@@ -347,7 +431,7 @@ FocusScope {
         property bool showSeparator: false
 
         font.family: global.fonts.sans
-        font.pixelSize: root.height * 0.02
+        font.pixelSize: root.height * 0.025
         color: "#ffffff"
         opacity: 0.8
         font.bold: true
@@ -726,7 +810,6 @@ FocusScope {
                     showBadgeNotifications(result.newBadges);
                 }
             } catch (e) {
-                console.log("Error updating achievement system:", e);
             }
         }
     }
@@ -734,9 +817,9 @@ FocusScope {
     Item {
         id: mainContainer
         anchors.fill: parent
-        anchors.margins: 40
+        anchors.margins: Style.marginPage
 
-        anchors.topMargin: searchVisible ? 0 : 60
+        anchors.topMargin: searchVisible ? 0 : Math.round(60 * Style.scale)
         visible: !searchVisible
 
         Text {
@@ -747,14 +830,50 @@ FocusScope {
             }
             text: "top bar in the future, no remove"
             font.family: global.fonts.sans
-            font.pixelSize: 28
+            font.pixelSize: Style.fontSizeLarge
             font.bold: true
             color: "white"
             visible: false
         }
 
+        FeaturedGame {
+            id: featuredGameBanner
+            anchors {
+                top: continueHeader.bottom
+                topMargin: 30
+                left: parent.left
+                right: parent.right
+                bottom: parent.bottom
+            }
+            visible: opacity > 0.01
+            enabled: featuredBannerVisible && featuredGameData !== null
+            opacity: 0
+            scale: 0.97
+            transformOrigin: Item.Center
+            gameData: featuredGameData
+            descriptionFunction: root.getShortDescription
+            genreFunction: root.getFirstGenre
+            active: featuredFocused
+            buttonIndex: featuredButtonIndex
+
+            onPlayRequested: {
+                featuredFocused = true;
+                launchFeaturedGame();
+            }
+
+            onMoreInfoRequested: {
+                featuredFocused = true;
+                showGameInfo(true);
+            }
+        }
+
         Item {
             id: mainContent
+            visible: opacity > 0.01
+            enabled: !featuredBannerVisible || featuredGameData === null
+            opacity: 0
+            scale: 0.97
+            transformOrigin: Item.Center
             anchors {
                 top: continueHeader.bottom
                 topMargin: 30
@@ -784,7 +903,7 @@ FocusScope {
                         return collection ? collection.name : "";
                     }
                     font.family: global.fonts.sans
-                    font.pixelSize: root.height * 0.04
+                    font.pixelSize: root.height * 0.045
                     font.bold: true
                     color: "white"
                 }
@@ -798,7 +917,7 @@ FocusScope {
                         right: parent.right
                         bottom: parent.bottom
                     }
-                    spacing: 20
+                    spacing: Style.spacingXLarge
 
                     GameCard {
                         id: selectedGame
@@ -807,7 +926,11 @@ FocusScope {
                         gameData: getCurrentGame()
                         isCurrentItem: true
                         showNetflixInfo: true
-                        topBarFocused: topBar.isFocused && isCurrentItem
+                        topBarFocused: (topBar.isFocused || featuredBannerVisible) && isCurrentItem
+                        collectionShortName: {
+                            var c = getCurrentCollection();
+                            return c ? (c.shortName || "") : "";
+                        }
                         onGameSelected: {
                             if (gameData) {
                                 gameData.launch()
@@ -819,13 +942,13 @@ FocusScope {
                         id: nextGamesContainer
                         width: contentRow.width * 0.55
                         height: selectedGame.height
-                        spacing: 10
+                        spacing: Style.spacingMedium
 
                         Repeater {
                             id: gameRepeater
                             model: 3
                             delegate: GameCard {
-                                width: (nextGamesContainer.width - 20) / 3
+                                width: (nextGamesContainer.width - nextGamesContainer.spacing * 2) / 3
                                 height: nextGamesContainer.height
                                 topBarFocused: topBar.isFocused
                                 gameData: {
@@ -838,6 +961,10 @@ FocusScope {
                                 isCurrentItem: false
                                 showNetflixInfo: false
                                 compactMode: true
+                                collectionShortName: {
+                                    var c = getCurrentCollection();
+                                    return c ? (c.shortName || "") : "";
+                                }
                                 showEmptyCard: {
                                     var collection = getCurrentCollection();
                                     if (!collection) return false;
@@ -860,7 +987,7 @@ FocusScope {
                                 }
                                 onGameSelected: {
                                     if (gameData) {
-                                        currentGameIndex = currentGameIndex + index + 1;
+                                        nav.selectGame(currentCollectionIndex, currentGameIndex + index + 1);
                                     }
                                 }
                             }
@@ -966,17 +1093,17 @@ FocusScope {
 
                     Text {
                         id: gameDescription
-                        width: Math.min(implicitWidth, root.width * 0.5)
+                        width: Math.min(implicitWidth, root.width * 0.55)
                         anchors {
                             left: parent.left
                         }
                         text: getShortDescription(gameInfoContainer.currentGame)
                         font.family: global.fonts.sans
-                        font.pixelSize: root.height * 0.022
+                        font.pixelSize: root.height * 0.029
                         color: "white"
                         opacity: 0.7
                         wrapMode: Text.WordWrap
-                        maximumLineCount: 3
+                        maximumLineCount: 2
                         elide: Text.ElideRight
                         lineHeight: 1.2
                         visible: text !== "" && !gameMetadataRow.isHistoryCollection
@@ -1017,7 +1144,7 @@ FocusScope {
                         return nextIndex < allCollections.length ? allCollections[nextIndex].name : "";
                     }
                     font.family: global.fonts.sans
-                    font.pixelSize: 18
+                    font.pixelSize: root.height * 0.045
                     font.bold: true
                     color: "white"
                     opacity: 0.8
@@ -1032,9 +1159,9 @@ FocusScope {
                         left: parent.left
                         right: parent.right
                     }
-                    height: ((root.height - 40) * 0.7 * 0.9)
+                    height: ((root.height - Style.marginPage) * 0.7 * 0.9)
                     orientation: ListView.Horizontal
-                    spacing: 10
+                    spacing: Style.spacingMedium
                     visible: currentCollectionIndex + 1 < allCollections.length
                     model: currentCollectionIndex + 1 < allCollections.length ? allCollections[currentCollectionIndex + 1].games.count : 0
                     clip: true
@@ -1047,8 +1174,8 @@ FocusScope {
                     }
 
                     delegate: GameCard {
-                        width: (root.width - 80) * 0.5 / 3 - 7
-                        height: ((root.height - 40) * 0.7 * 0.9)
+                        width: (root.width - Style.marginPage * 2) * 0.5 / 3 - nextCollectionGames.spacing * 0.7
+                        height: ((root.height - Style.marginPage) * 0.7 * 0.9)
                         gameData: {
                             var nextCollectionIndex = currentCollectionIndex + 1;
                             if (nextCollectionIndex < allCollections.length) {
@@ -1063,10 +1190,35 @@ FocusScope {
                         topBarFocused: topBar.isFocused
 
                         onGameSelected: {
-                            currentCollectionIndex = currentCollectionIndex + 1;
-                            currentGameIndex = index;
+                            nav.selectGame(currentCollectionIndex + 1, index);
                         }
                     }
+                }
+            }
+        }
+
+        states: [
+            State {
+                name: "featured"
+                when: featuredBannerVisible && featuredGameData !== null
+                PropertyChanges { target: featuredGameBanner; opacity: 1; scale: 1 }
+                PropertyChanges { target: mainContent; opacity: 0; scale: 0.97 }
+            },
+            State {
+                name: "grid"
+                when: !featuredBannerVisible || featuredGameData === null
+                PropertyChanges { target: featuredGameBanner; opacity: 0; scale: 0.97 }
+                PropertyChanges { target: mainContent; opacity: 1; scale: 1 }
+            }
+        ]
+
+        transitions: Transition {
+            ParallelAnimation {
+                NumberAnimation {
+                    targets: [featuredGameBanner, mainContent]
+                    properties: "opacity,scale"
+                    duration: 380
+                    easing.type: Easing.OutCubic
                 }
             }
         }
@@ -1085,22 +1237,26 @@ FocusScope {
         id: gameInfoComponent
         anchors.fill: parent
         visible: gameInfoVisible
-        gameData: getCurrentGame()
+        gameData: gameInfoFromFeatured ? featuredGameData : getCurrentGame()
         isFavorite: gameData ? gameData.favorite : false
         opacity: gameInfoVisible ? 1.0 : 0.0
-        sourceContext: "main"
+        sourceContext: gameInfoFromFeatured ? "featured" : "main"
+
+        continueVideoEnabled: gameVideoContinueEnabled
+        continueVideoPosition: gameVideoContinuePosition
+        continueVideoVolume: gameVideoContinueVolume
 
         getFirstGenreFunction: root.getFirstGenre
 
         onLaunchGame: {
-            console.log("GameInfoShow: Launching game");
             isLaunching = true;
 
             var launchState = {
                 collectionIndex: currentCollectionIndex || 0,
                 gameIndex: currentGameIndex || 0,
                 topBarFocused: topBar ? topBar.isFocused : false,
-                wasInGameInfo: true
+                wasInGameInfo: true,
+                wasFeatured: gameInfoFromFeatured
             };
             api.memory.set("preLaunchState", launchState);
 
@@ -1121,18 +1277,28 @@ FocusScope {
         }
 
         onClosed: {
-            console.log("Theme: GameInfoShow onClosed signal received");
+            if (sourceContext === "featured") {
+                gameInfoFromFeatured = false;
+                gameInfoVisible = false;
+                themeOpacity = 1.0;
+                topBarVisible = true;
+                featuredBannerVisible = featuredGameData !== null;
+                featuredFocused = featuredGameData !== null;
+                featuredButtonIndex = 1;
+                forceActiveFocus();
+            } else if (sourceContext === "main") {
+                var handoffPosition = (gameVideoContinueEnabled &&
+                typeof gameInfoComponent.getVideoPosition === "function")
+                ? gameInfoComponent.getVideoPosition() : -1;
 
-            if (sourceContext === "main") {
-                if (selectedGame) {
-                    selectedGame.gameInfoActive = false;
-                }
-
+                gameVideoContinueEnabled = false;
                 gameInfoVisible = false;
                 themeOpacity = 1.0;
                 topBar.isFocused = false;
                 forceActiveFocus();
-                resumeVideoTimer.start();
+
+                closeHandoffTimer.handoffPosition = handoffPosition;
+                closeHandoffTimer.start();
             }
         }
 
@@ -1140,13 +1306,17 @@ FocusScope {
     }
 
     Timer {
-        id: resumeVideoTimer
-        interval: 100
+        id: closeHandoffTimer
+        interval: 10
+        repeat: false
+        property real handoffPosition: -1
+
         onTriggered: {
-            if (selectedGame && typeof selectedGame.resumeVideo === "function") {
-                console.log("Theme: Calling resumeVideo from timer");
-                selectedGame.resumeVideo();
-            }
+            if (!selectedGame) return;
+
+            selectedGame.pendingHandoffPosition = handoffPosition;
+
+            selectedGame.gameInfoActive = false;
         }
     }
 
@@ -1198,7 +1368,15 @@ FocusScope {
         }
 
         if (api.keys.isCancel(event)) {
-            if (!topBar.isFocused && topBarVisible) {
+            if (featuredFocused) {
+                featuredFocused = false;
+                topBar.isFocused = true;
+
+                if (selectedGame && typeof selectedGame.pauseVideo === "function") {
+                    selectedGame.pauseVideo();
+                }
+                event.accepted = true;
+            } else if (!topBar.isFocused && topBarVisible) {
                 topBar.isFocused = true;
 
                 if (selectedGame && typeof selectedGame.pauseVideo === "function") {
@@ -1206,6 +1384,13 @@ FocusScope {
                 }
                 event.accepted = true;
             }
+        } else if (!event.isAutoRepeat && api.keys.isAccept(event) && featuredFocused) {
+            if (featuredButtonIndex === 0) {
+                launchFeaturedGame();
+            } else {
+                showGameInfo(true);
+            }
+            event.accepted = true;
         } else if (!event.isAutoRepeat && api.keys.isAccept(event) && !topBar.isFocused && topBarVisible) {
             showGameInfo();
             event.accepted = true;
@@ -1226,35 +1411,59 @@ FocusScope {
         }
     }
 
-    Keys.onUpPressed: {
+    function blockGridNavigation(event) {
         if (statsScreenActive) {
-            return;
+            return true;
         }
-
         if (gameInfoVisible) {
             event.accepted = true;
+            return true;
+        }
+        return false;
+    }
+
+    Keys.onUpPressed: {
+        if (blockGridNavigation(event)) {
             return;
         }
 
         if (topBar.isFocused) {
             event.accepted = true;
-        } else {
-            if (currentCollectionIndex > 0) {
-                currentCollectionIndex--;
-                currentGameIndex = 0;
-            }
-        }
-    }
-
-    Keys.onDownPressed: {
-        if (statsScreenActive) {
             return;
         }
 
-        if (gameInfoVisible) {
+        if (featuredFocused) {
+            if (topBarVisible) {
+                featuredFocused = false;
+                topBar.isFocused = true;
+
+                if (selectedGame && typeof selectedGame.pauseVideo === "function") {
+                    selectedGame.pauseVideo();
+                }
+            }
             event.accepted = true;
             return;
         }
+
+        if (!featuredBannerVisible && currentCollectionIndex === 0 && featuredGameData) {
+            featuredBannerVisible = true;
+            featuredFocused = true;
+            featuredButtonIndex = 0;
+            if (selectedGame && typeof selectedGame.pauseVideo === "function") {
+                selectedGame.pauseVideo();
+            }
+            event.accepted = true;
+            return;
+        }
+
+        nav.moveCollectionUp();
+    }
+
+    Keys.onDownPressed: {
+        if (blockGridNavigation(event)) {
+            return;
+        }
+
         if (topBar.isFocused) {
             topBar.isFocused = false;
             event.accepted = true;
@@ -1267,67 +1476,72 @@ FocusScope {
                     }
                     searchComponent.takeFocusFromTopBar();
                 }
-            } else {
-                if (selectedGame && typeof selectedGame.resumeVideo === "function") {
-                    selectedGame.resumeVideo();
-                }
+            } else if (featuredBannerVisible && featuredGameData) {
+                featuredFocused = true;
+                featuredButtonIndex = 0;
+            } else if (selectedGame && typeof selectedGame.resumeVideo === "function") {
+                selectedGame.resumeVideo();
+            }
+        } else if (featuredFocused) {
+            featuredFocused = false;
+            featuredBannerVisible = false;
+            event.accepted = true;
+
+            if (selectedGame && typeof selectedGame.resumeVideo === "function") {
+                selectedGame.resumeVideo();
             }
         } else if (!searchVisible) {
-            if (currentCollectionIndex < allCollections.length - 1) {
-                currentCollectionIndex++;
-                currentGameIndex = 0;
-            }
+            nav.moveCollectionDown();
         }
     }
 
     Keys.onLeftPressed: {
-        if (statsScreenActive) {
-            return;
-        }
-
-        if (gameInfoVisible) {
-            event.accepted = true;
+        if (blockGridNavigation(event)) {
             return;
         }
 
         if (topBar.isFocused) {
             topBar.navigate("left");
             event.accepted = true;
-        } else {
-            if (currentGameIndex > 0) {
-                currentGameIndex--;
-            }
-        }
-    }
-
-    Keys.onRightPressed: {
-        if (statsScreenActive) {
             return;
         }
 
-        if (gameInfoVisible) {
+        if (featuredFocused) {
+            featuredButtonIndex = 0;
             event.accepted = true;
+            return;
+        }
+
+        nav.moveGameLeft();
+    }
+
+    Keys.onRightPressed: {
+        if (blockGridNavigation(event)) {
             return;
         }
 
         if (topBar.isFocused) {
             topBar.navigate("right");
             event.accepted = true;
-        } else {
-            var collection = getCurrentCollection();
-            if (collection && currentGameIndex < collection.games.count - 1) {
-                currentGameIndex++;
-            }
+            return;
         }
+
+        if (featuredFocused) {
+            featuredButtonIndex = 1;
+            event.accepted = true;
+            return;
+        }
+
+        nav.moveGameRight();
     }
 
     Component.onCompleted: {
+        Style.updateScale(width, height);
         updateCollectionsList();
         topBar.root = root;
 
         var preLaunchState = api.memory.get("preLaunchState");
         if (preLaunchState) {
-            console.log("Theme: Found pre-launch state on startup, cleaning up");
             api.memory.set("preLaunchState", null);
         }
 
@@ -1335,14 +1549,12 @@ FocusScope {
         themeOpacity = 1.0;
         topBarVisible = true;
 
-        if (currentCollectionIndex >= allCollections.length) {
-            currentCollectionIndex = 0;
-        }
+        nav.clampToValidRange();
 
-        var collection = getCurrentCollection();
-        if (collection && currentGameIndex >= collection.games.count) {
-            currentGameIndex = 0;
-        }
+        featuredGameData = pickFeaturedGame();
+        featuredBannerVisible = featuredGameData !== null && topBar.currentSection === 1;
+        featuredFocused = featuredBannerVisible;
+        featuredButtonIndex = 0;
 
         try {
             var achievementState = api.memory.get("achievementState") || {};
@@ -1387,26 +1599,26 @@ FocusScope {
                 anchors {
                     top: parent.top
                     right: parent.right
-                    topMargin: 100
-                    rightMargin: 20
+                    topMargin: Math.round(100 * Style.scale)
+                    rightMargin: Style.spacingXLarge
                 }
-                width: 300
-                height: 100
-                radius: 10
+                width: Style.notificationWidth
+                height: Style.notificationHeight
+                radius: Style.radiusMedium
                 color: "#CC1a1a1a"
                 border.color: "#44ffffff"
-                border.width: 1
+                border.width: Style.borderThin
                 visible: currentIndex < badges.length
 
                 Row {
                     anchors.fill: parent
-                    anchors.margins: 10
-                    spacing: 10
+                    anchors.margins: Style.spacingMedium
+                    spacing: Style.spacingMedium
 
                     Image {
                         id: badgeIcon
-                        width: 60
-                        height: 60
+                        width: Style.iconBadgeSize
+                        height: Style.iconBadgeSize
                         source: badges[currentIndex] ? badges[currentIndex].icon : ""
                         fillMode: Image.PreserveAspectFit
                         anchors.verticalCenter: parent.verticalCenter
@@ -1415,12 +1627,12 @@ FocusScope {
                     Column {
                         width: parent.width - badgeIcon.width - parent.spacing
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 5
+                        spacing: Style.spacingTiny
 
                         Text {
                             text: "¡Achievement Unlocked!"
                             font.family: global.fonts.sans
-                            font.pixelSize: 14
+                            font.pixelSize: Style.fontSizeSmall
                             font.bold: true
                             color: "white"
                         }
@@ -1428,7 +1640,7 @@ FocusScope {
                         Text {
                             text: badges[currentIndex] ? badges[currentIndex].name : ""
                             font.family: global.fonts.sans
-                            font.pixelSize: 16
+                            font.pixelSize: Style.fontSizeMedium
                             color: "#FFD700"
                             width: parent.width
                             elide: Text.ElideRight

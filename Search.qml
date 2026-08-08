@@ -29,6 +29,8 @@ FocusScope {
     property var selectedGameForInfo: null
     property bool showingMultiplayerFilter: false
 
+    property real resultsGridWidthRatio: 0.85
+
     property var lettersAndNumbers: [
         "a", "b", "c", "d", "e", "f",
         "g", "h", "i", "j", "k", "l",
@@ -70,15 +72,15 @@ FocusScope {
             left: parent.left
             right: parent.right
             bottom: parent.bottom
-            leftMargin: 40
-            rightMargin: 40
-            bottomMargin: 40
+            leftMargin: Style.marginPage
+            rightMargin: Style.marginPage
+            bottomMargin: Style.marginPage
         }
-        spacing: 20
+        spacing: Style.spacingXLarge
 
         Item {
             id: leftColumn
-            width: parent.width * 0.3
+            width: parent.width * 0.25
             height: parent.height
 
             Item {
@@ -95,16 +97,16 @@ FocusScope {
                     }
                     width: parent.width
                     height: root.height * 0.06
-                    spacing: 5
+                    spacing: Style.spacingTiny
 
                     Rectangle {
                         id: spaceKey
                         width: (parent.width - parent.spacing) / 2
                         height: parent.height
-                        color: keyboardFocused && selectedKeyRow === -1 && selectedKeyCol === 0 ? "#ffffff" : "#1d1c1d"
-                        border.color: "#343434"
-                        border.width: 1
-                        radius: 4
+                        color: "#070707"
+                        border.color: keyboardFocused && selectedKeyRow === -1 && selectedKeyCol === 0 ? "#ffffff" : "#070707"
+                        border.width: keyboardFocused && selectedKeyRow === -1 && selectedKeyCol === 0 ? Style.borderMedium : Style.borderThin
+                        radius: Style.radiusSmall
 
                         Item {
                             anchors.centerIn: parent
@@ -124,7 +126,7 @@ FocusScope {
                             ColorOverlay {
                                 anchors.fill: spaceIcon
                                 source: spaceIcon
-                                color: keyboardFocused && selectedKeyRow === -1 && selectedKeyCol === 0 ? "#000000" : "white"
+                                color: "white"
                             }
                         }
 
@@ -134,7 +136,7 @@ FocusScope {
                             font.family: global.fonts.sans
                             font.pixelSize: parent.height * 0.4
                             font.bold: true
-                            color: keyboardFocused && selectedKeyRow === -1 && selectedKeyCol === 0 ? "#000000" : "white"
+                            color: "white"
                             visible: !spaceIcon.visible
                         }
 
@@ -148,10 +150,10 @@ FocusScope {
                         id: backspaceKey
                         width: (parent.width - parent.spacing) / 2
                         height: parent.height
-                        color: keyboardFocused && selectedKeyRow === -1 && selectedKeyCol === 1 ? "#ffffff" : "#1d1c1d"
-                        border.color: "#343434"
-                        border.width: 1
-                        radius: 4
+                        color: "#070707"
+                        border.color: keyboardFocused && selectedKeyRow === -1 && selectedKeyCol === 1 ? "#ffffff" : "#070707"
+                        border.width: keyboardFocused && selectedKeyRow === -1 && selectedKeyCol === 1 ? Style.borderMedium : Style.borderThin
+                        radius: Style.radiusSmall
 
                         Item {
                             anchors.centerIn: parent
@@ -171,7 +173,7 @@ FocusScope {
                             ColorOverlay {
                                 anchors.fill: deleteIcon
                                 source: deleteIcon
-                                color: keyboardFocused && selectedKeyRow === -1 && selectedKeyCol === 1 ? "#000000" : "white"
+                                color: "white"
                             }
                         }
 
@@ -181,7 +183,7 @@ FocusScope {
                             font.family: global.fonts.sans
                             font.pixelSize: parent.height * 0.4
                             font.bold: true
-                            color: keyboardFocused && selectedKeyRow === -1 && selectedKeyCol === 1 ? "#000000" : "white"
+                            color: "white"
                             visible: !deleteIcon.visible
                         }
 
@@ -196,13 +198,13 @@ FocusScope {
                     id: keyboard
                     anchors {
                         top: specialKeysRow.bottom
-                        topMargin: 15
+                        topMargin: Style.spacingLarge
                         left: parent.left
                     }
                     width: parent.width
-                    height: parent.height - specialKeysRow.height - 15
+                    height: parent.height - specialKeysRow.height - Style.spacingLarge
                     columns: 6
-                    spacing: 5
+                    spacing: Style.spacingTiny
 
                     Repeater {
                         model: lettersAndNumbers.length
@@ -214,18 +216,17 @@ FocusScope {
 
                             width: (keyboard.width - (keyboard.spacing * 5)) / 6
                             height: (keyboard.height - (keyboard.spacing * 5)) / 6
-                            color: isSelected ? "#ffffff" : "#1d1c1d"
-                            border.color: "#343434"
-                            border.width: 1
-                            radius: 4
+                            color: "#070707"
+                            border.color: isSelected ? "#ffffff" : "#070707"
+                            border.width: isSelected ? Style.borderMedium : Style.borderThin
+                            radius: Style.radiusSmall
 
                             Text {
                                 anchors.centerIn: parent
                                 text: keyText
                                 font.family: global.fonts.sans
-                                font.pixelSize: parent.height * 0.4
-                                font.bold: true
-                                color: isSelected ? "#000000" : "white"
+                                font.pixelSize: parent.height * 0.6
+                                color: "white"
                             }
 
                             MouseArea {
@@ -243,7 +244,7 @@ FocusScope {
                 height: parent.height * 0.4
                 anchors {
                     top: keyboardContainer.bottom
-                    topMargin: 20
+                    topMargin: Style.spacingXLarge
                     left: parent.left
                 }
 
@@ -264,12 +265,12 @@ FocusScope {
                     id: genresList
                     anchors {
                         top: genresTitle.bottom
-                        topMargin: 15
+                        topMargin: Style.spacingLarge
                         left: parent.left
                         right: parent.right
                         bottom: parent.bottom
                     }
-                    spacing: 5
+                    spacing: Style.spacingTiny
                     clip: true
                     model: genres
                     currentIndex: genreListFocused ? selectedGenreIndex : -1
@@ -292,7 +293,7 @@ FocusScope {
                             if (genreListFocused && selectedGenreIndex === index) {
                                 return "#ffffff"
                             } else if (resultsGridFocused && selectedGenreIndex === index && lastFocusOrigin === "genres") {
-                                return "#1d1c1d"
+                                return "#070707"
                             } else {
                                 return "transparent"
                             }
@@ -327,7 +328,7 @@ FocusScope {
 
         Item {
             id: rightColumn
-            width: parent.width * 0.7
+            width: parent.width * 0.75
             height: parent.height
 
             Text {
@@ -352,7 +353,7 @@ FocusScope {
 
                 Rectangle {
                     id: titleCursor
-                    width: 3
+                    width: Style.cursorWidth
                     height: parent.height * 0.8
                     color: "white"
                     anchors {
@@ -373,7 +374,7 @@ FocusScope {
 
             Item {
                 id: spinnerContainer
-                anchors.centerIn: resultsGrid
+                anchors.centerIn: parent
                 width: parent.width
                 height: parent.height
                 visible: isLoading
@@ -416,13 +417,17 @@ FocusScope {
                     top: resultsTitle.bottom
                     topMargin: 20
                     left: parent.left
-                    right: parent.right
                     bottom: parent.bottom
                 }
-                cellWidth: width / 4
+                width: parent.width * resultsGridWidthRatio
+                cellWidth: width / columnsPerRow
                 cellHeight: height / 2
                 clip: true
                 currentIndex: resultsGridFocused ? selectedResultIndex : -1
+
+                interactive: false
+
+                readonly property int columnsPerRow: Style.isNarrowScreen ? Style.gridColumnsNarrow : Style.gridColumnsWide
 
                 opacity: isLoading ? 0.02 : 1.0
 
@@ -430,11 +435,42 @@ FocusScope {
                     NumberAnimation { duration: 300 }
                 }
 
+                Behavior on contentY {
+                    NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
+                }
+
                 model: showingAllGames && searchText === "" ? getAllGames() : filteredGames
 
                 onCurrentIndexChanged: {
                     if (currentIndex >= 0) {
-                        positionViewAtIndex(currentIndex, GridView.Contain)
+                        var row = Math.floor(currentIndex / columnsPerRow)
+                        var maxContentY = Math.max(0, contentHeight - height)
+                        contentY = Math.min(row * cellHeight, maxContentY)
+                    }
+                }
+
+                highlightFollowsCurrentItem: false
+                highlight: Rectangle {
+                    color: "transparent"
+                    border.color: "#ffffff"
+                    border.width: 5
+                    radius: 0
+                    z: 10
+                    visible: resultsGrid.currentItem !== null
+
+                    width: resultsGrid.currentItem ? resultsGrid.currentItem.width * 0.95 : 0
+                    height: resultsGrid.currentItem ? resultsGrid.currentItem.height * 0.95 : 0
+                    x: resultsGrid.currentItem ? resultsGrid.currentItem.x + resultsGrid.currentItem.width * 0.025 : 0
+                    y: resultsGrid.currentItem ? resultsGrid.currentItem.y + resultsGrid.currentItem.height * 0.025 : 0
+
+                    Behavior on x {
+                        NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
+                    }
+                    Behavior on width {
+                        NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
+                    }
+                    Behavior on height {
+                        NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
                     }
                 }
 
@@ -452,14 +488,6 @@ FocusScope {
                         showNetflixInfo: false
                         compactMode: true
                         topBarFocused: false
-
-                        Rectangle {
-                            anchors.fill: parent
-                            color: "transparent"
-                            border.color: resultsGridFocused && selectedResultIndex === index ? "#ffffff" : "transparent"
-                            border.width: 3
-                            radius: 8
-                        }
 
                         Item {
                             anchors {
@@ -780,7 +808,7 @@ FocusScope {
     }
 
     function isInFirstColumnOfGrid() {
-        return selectedResultIndex % 4 === 0
+        return selectedResultIndex % resultsGrid.columnsPerRow === 0
     }
 
     function ensureGenreVisible() {
@@ -896,8 +924,8 @@ FocusScope {
                     ensureGenreVisible()
                 }
             } else if (resultsGridFocused) {
-                if (selectedResultIndex >= 4) {
-                    selectedResultIndex -= 4
+                if (selectedResultIndex >= resultsGrid.columnsPerRow) {
+                    selectedResultIndex -= resultsGrid.columnsPerRow
                     ensureResultVisible()
                 }
             }
@@ -928,8 +956,8 @@ FocusScope {
 
             } else if (resultsGridFocused) {
                 var totalResults = filteredGames.length > 0 ? filteredGames.length : getAllGames().length
-                if (selectedResultIndex + 4 < totalResults) {
-                    selectedResultIndex += 4
+                if (selectedResultIndex + resultsGrid.columnsPerRow < totalResults) {
+                    selectedResultIndex += resultsGrid.columnsPerRow
                     ensureResultVisible()
                 }
             }

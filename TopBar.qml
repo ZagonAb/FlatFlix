@@ -65,7 +65,7 @@ Item {
     Row {
         id: navButtons
         anchors.centerIn: parent
-        spacing: root ? root.width * 0.03 : 40
+        spacing: root ? root.width * 0.03 : Math.round(40 * Style.scale)
 
         NavButton {
             id: searchButton
