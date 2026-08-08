@@ -3,10 +3,11 @@
 - A theme inspired by smart TVs and video streaming applications.
 
 
-![screen](https://github.com/ZagonAb/FlatFlix/blob/ba18e14d107990804ced90266afa8d873793e1d6/.meta/screenshots/screen0.png)
+![screen0](https://github.com/ZagonAb/FlatFlix/blob/713fbffa26ba50f1cfa4eb9d123c12724a6938d5/.meta/screenshots/screen0.png)
 
-![screen1](https://github.com/ZagonAb/FlatFlix/blob/ba18e14d107990804ced90266afa8d873793e1d6/.meta/screenshots/screen1.png)
+![screen1](https://github.com/ZagonAb/FlatFlix/blob/713fbffa26ba50f1cfa4eb9d123c12724a6938d5/.meta/screenshots/screen1.png)
 
+![screen2](https://github.com/ZagonAb/FlatFlix/blob/713fbffa26ba50f1cfa4eb9d123c12724a6938d5/.meta/screenshots/screen2.png)
 
 ## Installation
 
